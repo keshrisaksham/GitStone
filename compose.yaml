@@ -1,0 +1,27 @@
+# GitStone's web UI, reachable from your local network.
+#
+#   GITSTONE_TOKEN=choose-a-long-random-string docker compose up -d --build
+#   open http://<this-machine>:5151  (log in with the token)
+#
+# Without GITSTONE_TOKEN a random one is generated; `docker compose logs`
+# prints it. Dumps live in the `gitstone-data` volume.
+#
+# One-off CLI dump into ./dump:
+#   docker compose run --rm -v "$PWD/dump:/dump" gitstone gitstone http://target/.git /dump
+services:
+  gitstone:
+    build: .
+    image: gitstone
+    restart: unless-stopped
+    ports:
+      - "${GITSTONE_PORT:-5151}:5151"
+    environment:
+      GITSTONE_TOKEN: "${GITSTONE_TOKEN:-}"
+    volumes:
+      - gitstone-data:/data
+      # To import dumps you already have, mount them and pass --import-root:
+      #   - ./old-dumps:/imports:ro
+      # command: ["gitstone-ui", "--lan", "--port", "5151", "--import-root", "/imports"]
+
+volumes:
+  gitstone-data:

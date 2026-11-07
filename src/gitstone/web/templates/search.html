@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Search - {{ dump.url }}{% endblock %}
+{% set active = 'search' %}
+{% block subnav %}{% include "_repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Search</h1>
+  <form method="get" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="plain text, case-insensitive" autofocus>
+    <select name="scope">
+      <option value="tree" {% if scope == 'tree' %}selected{% endif %}>current tree</option>
+      <option value="history" {% if scope == 'history' %}selected{% endif %}>commit messages (full history)</option>
+    </select>
+    <button type="submit" class="primary">Search</button>
+  </form>
+  <p class="hint">
+    "current tree" greps every file at this ref. "commit messages" walks the
+    whole history, including commits no longer on any branch tip. Looking
+    for secrets that were committed and later deleted? Use the
+    <a href="{{ url_for('browse.secrets_page', dump_id=dump.id) }}">Secrets</a> scan instead -- it reads every blob in the dump, not just file contents at one ref.
+  </p>
+
+  {% if hits is not none %}
+    {% if truncated %}<p class="hint">Showing the first {{ hits|length }} matches.</p>{% endif %}
+    {% if scope == 'history' %}
+      <ul class="commit-list">
+        {% for c in hits %}
+        <li>
+          <a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=c.sha) }}">{{ c.summary }}</a>
+          <span class="commit-meta"><code>{{ c.short }}</code> &middot; {{ c.author }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <ul class="search-hits">
+        {% for h in hits %}
+        <li>
+          <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=ref, subpath=h.path) }}">{{ h.path }}</a>:{{ h.line_no }}
+          <pre class="snippet">{{ h.line }}</pre>
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if not hits %}<p class="empty">No matches.</p>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

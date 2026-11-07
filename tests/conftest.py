@@ -1,12 +1,11 @@
-"""Shared fixtures: a small real git repository used by both the CLI tests
-and the web UI's gitview tests."""
+"""Shared fixtures: a small real git repository, and an HTTP server that
+exposes it the way a misconfigured website would (no directory listings)."""
 import os
-import sys
+import subprocess
 
 import pytest
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
+from helpers import Server
 
 GIT_ENV = {
     "GIT_AUTHOR_NAME": "t",
@@ -17,7 +16,6 @@ GIT_ENV = {
 
 
 def git(cwd, *args):
-    import subprocess
     env = dict(os.environ, **GIT_ENV)
     subprocess.run(["git", *args], cwd=cwd, env=env, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -26,7 +24,7 @@ def git(cwd, *args):
 @pytest.fixture
 def repo(tmp_path):
     """A small repo with two commits, an annotated tag, and server-info
-    generated (so gitstone's "no listing" test server works against it)."""
+    generated (so the no-listing test server can serve it)."""
     path = tmp_path / "site"
     path.mkdir()
     git(path, "init", "-q", "-b", "master")
@@ -41,3 +39,10 @@ def repo(tmp_path):
     git(path, "tag", "-a", "v1", "-m", "release")
     git(path, "update-server-info")
     return path
+
+
+@pytest.fixture
+def server(repo):
+    s = Server(repo)
+    yield s
+    s.close()

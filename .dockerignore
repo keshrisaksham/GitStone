@@ -1,0 +1,15 @@
+.git/
+tests/
+dump/
+workspace/
+.gitstone/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+*.p12
+*.pfx

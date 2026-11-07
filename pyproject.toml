@@ -1,3 +1,55 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitstone"
+dynamic = ["version"]
+description = "Recover a git repository from a website's exposed .git directory -- from the command line or a web UI reachable over your local network"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Maxime Arthaud", email = "maxime@arthaud.me" }]
+keywords = ["dump", "git", "repository", "security", "vulnerability", "ctf"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Security",
+]
+dependencies = [
+    "beautifulsoup4>=4.9",
+    "dulwich>=0.22",
+    "Flask>=2.3",
+    "PySocks>=1.7",
+    "requests>=2.25",
+    "requests-pkcs12>=1.14",
+    "waitress>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+gitstone = "gitstone.cli:main"
+gitstone-ui = "gitstone.web.server:main"
+
+# TODO: set the real repository URL once this is published
+# [project.urls]
+# Homepage = "https://github.com/YOUR-ORG/gitstone"
+
+[tool.setuptools.dynamic]
+version = { attr = "gitstone.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"gitstone.web" = ["templates/*.html", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    # the dumper forks worker processes from the web server's runner thread
+    "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks:DeprecationWarning",
+]

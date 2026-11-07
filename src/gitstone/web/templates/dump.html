@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_params.html" import fields %}
+{% block title %}{{ dump.url }} - GitStone{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h1 class="wrap">{{ dump.url }}</h1>
+      <p>
+        <span class="tag">{{ 'imported from disk' if dump.kind == 'local' else 'remote' }}</span>
+        <span class="badge status-{{ dump.status }}">{{ dump.status }}</span>
+        <span class="muted">created {{ dump.created | fmt_time }}</span>
+      </p>
+    </div>
+    <div class="actions">
+      {% if default_ref %}
+      <a class="btn-link" href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=default_ref) }}">Browse repository &rarr;</a>
+      <a href="{{ url_for('ui.download', dump_id=dump.id) }}">Download .zip</a>
+      <a href="{{ url_for('ui.download', dump_id=dump.id, git=0) }}">without .git</a>
+      {% endif %}
+    </div>
+  </div>
+  {% if not default_ref and not dump.busy and dump.runs %}
+  <p class="hint">No usable ref has been recovered yet, so there's nothing to browse. Check the last run's log.</p>
+  {% endif %}
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+</div>
+
+<div class="panel">
+  <h2 class="first">Run a function</h2>
+  {% if dump.busy %}<p class="hint">A run is in progress or queued; new runs wait their turn.</p>{% endif %}
+  {% for title, entries in groups %}
+    <h3>{{ title }}</h3>
+    {% for action, values in entries %}
+    <details class="function" {{ 'open' if action.id == open_action }}>
+      <summary><strong>{{ action.title }}</strong> <span class="muted">{{ action.summary }}</span></summary>
+      <form method="post" action="{{ url_for('ui.run_action', dump_id=dump.id, action_id=action.id) }}" class="form">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        {{ fields(action, values, action.id ~ '-') }}
+        <button type="submit" class="primary">Run</button>
+      </form>
+    </details>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <h2 class="first">Runs</h2>
+  {% if not dump.runs %}
+    <p class="empty">Nothing has been run on this dump yet.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>#</th><th>Function</th><th>Status</th><th>Started</th><th>Took</th><th>Fetched</th></tr></thead>
+    <tbody>
+      {% for run in dump.runs | reverse %}
+      <tr>
+        <td><a href="{{ url_for('ui.run_detail', dump_id=dump.id, run_id=run.id) }}">{{ run.id }}</a></td>
+        <td>{{ registry[run.action].title if run.action in registry else run.action }}</td>
+        <td><span class="badge status-{{ run.status }}">{{ run.status }}</span></td>
+        <td>{{ (run.started or run.queued) | fmt_time }}</td>
+        <td>{{ run | fmt_duration }}</td>
+        <td>{{ run.stats.get('fetched', '-') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="panel danger">
+  <form method="post" action="{{ url_for('ui.delete_dump', dump_id=dump.id) }}"
+        data-confirm="Delete this dump and all its recovered files?">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="link-button" type="submit" {{ 'disabled' if dump.busy }}>Delete this dump</button>
+    <span class="muted">removes the recovered files from the server{% if dump.kind == 'local' %} (not the original you imported){% endif %}</span>
+  </form>
+</div>
+{% endblock %}

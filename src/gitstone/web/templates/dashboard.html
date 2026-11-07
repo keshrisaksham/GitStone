@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Dumps - GitStone{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-head">
+    <h1>Dumps</h1>
+    <a class="btn-link" href="{{ url_for('ui.new_dump') }}">+ New dump</a>
+  </div>
+  {% if not dumps %}
+    <p class="empty">No dumps yet. <a href="{{ url_for('ui.new_dump') }}">Start one</a>
+      or <a href="{{ url_for('ui.import_dump') }}">import one you already have</a>.</p>
+  {% else %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Target</th><th>Kind</th><th>Status</th><th>Last activity</th><th>Runs</th><th>Fetched</th><th></th></tr></thead>
+    <tbody>
+      {% for dump in dumps %}
+      <tr>
+        <td class="wrap"><a href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}">{{ dump.url }}</a></td>
+        <td><span class="tag">{{ 'imported' if dump.kind == 'local' else 'remote' }}</span></td>
+        <td><span class="badge status-{{ dump.status }}">{{ dump.status }}</span></td>
+        <td>{{ dump.updated | fmt_time }}</td>
+        <td>{{ dump.runs | length }}</td>
+        <td>{{ dump.fetched }}</td>
+        <td>
+          {% if not dump.busy %}
+          <form method="post" action="{{ url_for('ui.delete_dump', dump_id=dump.id) }}"
+                data-confirm="Delete this dump and all its recovered files?">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class="link-button" type="submit">delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

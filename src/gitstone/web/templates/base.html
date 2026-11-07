@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GitStone{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('ui.dashboard') }}">GitStone</a>
+    <nav class="topbar-actions">
+      <a href="{{ url_for('ui.dashboard') }}">Dumps</a>
+      <a href="{{ url_for('ui.functions') }}">Functions</a>
+      <a href="{{ url_for('ui.import_dump') }}">Import</a>
+      <a class="btn-link" href="{{ url_for('ui.new_dump') }}">+ New dump</a>
+      {% if auth_enabled %}
+      <form method="post" action="{{ url_for('ui.logout') }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="link-button muted-button" type="submit">Log out</button>
+      </form>
+      {% endif %}
+    </nav>
+  </header>
+  {% block subnav %}{% endblock %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

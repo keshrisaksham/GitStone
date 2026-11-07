@@ -1,0 +1,47 @@
+{# Renders an action's parameters as form fields.
+   field(p, value)      one parameter
+   fields(action, values, prefix)  all of them, "advanced" ones folded away #}
+{% macro field(p, value, prefix='') %}
+  {% set id = prefix ~ p.name %}
+  {% if p.kind == 'bool' %}
+    <label class="checkbox">
+      <input type="checkbox" name="{{ p.name }}" id="{{ id }}" {{ 'checked' if value }}>
+      <span>{{ p.label }}{% if p.help %}<small>{{ p.help }}</small>{% endif %}</span>
+    </label>
+  {% else %}
+    <label>
+      <span>{{ p.label }}</span>
+      {% if p.kind == 'textarea' %}
+        <textarea name="{{ p.name }}" id="{{ id }}" rows="3" placeholder="{{ p.placeholder }}">{{ value }}</textarea>
+      {% elif p.kind in ('int', 'float') %}
+        <input type="number" name="{{ p.name }}" id="{{ id }}" value="{{ value }}"
+               {% if p.minimum is not none %}min="{{ p.minimum }}"{% endif %}
+               {% if p.kind == 'float' %}step="0.1"{% endif %}>
+      {% elif p.kind == 'password' %}
+        <input type="password" name="{{ p.name }}" id="{{ id }}" autocomplete="off">
+      {% else %}
+        <input type="text" name="{{ p.name }}" id="{{ id }}" value="{{ value }}" placeholder="{{ p.placeholder }}"
+               {{ 'required' if p.required }}>
+      {% endif %}
+      {% if p.help %}<small>{{ p.help }}</small>{% endif %}
+    </label>
+  {% endif %}
+{% endmacro %}
+
+{% macro fields(action, values, prefix='') %}
+  {% set basic = action.params | rejectattr('advanced') | list %}
+  {% set advanced = action.params | selectattr('advanced') | list %}
+  {% if basic %}
+  <div class="form-grid">
+    {% for p in basic %}{{ field(p, values[p.name], prefix) }}{% endfor %}
+  </div>
+  {% endif %}
+  {% if advanced %}
+  <details class="advanced">
+    <summary>More options</summary>
+    <div class="form-stack">
+      {% for p in advanced %}{{ field(p, values[p.name], prefix) }}{% endfor %}
+    </div>
+  </details>
+  {% endif %}
+{% endmacro %}

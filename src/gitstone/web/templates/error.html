@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} - GitStone{% endblock %}
+{% block content %}
+<div class="panel narrow">
+  <h1>{{ 'Not found' if code == 404 else 'Error ' ~ code }}</h1>
+  <p>{{ message }}</p>
+  <p><a href="{{ url_for('ui.dashboard') }}">&larr; back to dumps</a></p>
+</div>
+{% endblock %}

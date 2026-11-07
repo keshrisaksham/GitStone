@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ commit.short }} - {{ dump.url }}{% endblock %}
+{% block subnav %}
+<nav class="subnav">
+  <div class="subnav-row">
+    <span class="repo-name">{{ dump.url }}</span>
+    <span class="badge status-{{ dump.status }}">{{ dump.status }}</span>
+  </div>
+</nav>
+{% endblock %}
+{% block content %}
+<div class="panel">
+  <p><a href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}">&larr; back to dump</a></p>
+  <h1>{{ commit.summary }}</h1>
+  <pre class="commit-message">{{ commit.message }}</pre>
+  <p class="commit-meta">
+    <code>{{ commit.sha }}</code> &middot; {{ commit.author }} &middot; {{ commit.author_time | fmt_time }}
+    {% if commit.parents %}
+      &middot; parent{{ 's' if commit.parents|length > 1 }}:
+      {% for p in commit.parents %}<a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=p) }}"><code>{{ p[:10] }}</code></a>{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+      &middot; root commit
+    {% endif %}
+  </p>
+
+  <h2>Diff <span class="diffstat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span></h2>
+  {% if diff.truncated %}<p class="hint">Diff truncated; this commit changes a lot.</p>{% endif %}
+  <pre class="diff">{% for cls, line in diff_lines %}<span class="{{ cls }}">{{ line }}</span>
+{% endfor %}</pre>
+</div>
+{% endblock %}

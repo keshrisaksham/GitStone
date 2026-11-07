@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_params.html" import fields %}
+{% block title %}New dump - GitStone{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>New dump</h1>
+  <p class="hint">Only run this against targets you're authorized to test.
+    These settings are remembered for the dump, so the individual functions on its
+    page start from the same values.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('ui.new_dump') }}" class="form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <label><span>Target URL</span>
+      <input type="text" name="url" value="{{ url }}" placeholder="http://target.example/.git" required autofocus>
+    </label>
+
+    {{ fields(action, values) }}
+
+    <label class="checkbox">
+      <input type="checkbox" name="start_now" {{ 'checked' if start_now }}>
+      <span>Start the full dump right away
+        <small>Uncheck to create the dump only and run individual functions yourself.</small></span>
+    </label>
+
+    <button type="submit" class="primary">Create dump</button>
+  </form>
+</div>
+{% endblock %}

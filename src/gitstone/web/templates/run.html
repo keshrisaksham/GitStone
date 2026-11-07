@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run.id }} - {{ dump.url }}{% endblock %}
+{% block content %}
+<div class="panel"
+     id="run" data-active="{{ 'true' if run.active else 'false' }}"
+     data-status-url="{{ url_for('ui.run_status', dump_id=dump.id, run_id=run.id) }}"
+     data-offset="{{ offset }}">
+  <p><a href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}">&larr; {{ dump.url }}</a></p>
+  <div class="panel-head">
+    <div>
+      <h1>{{ action.title if action else run.action }} <span class="muted">#{{ run.id }}</span></h1>
+      <p>
+        <span class="badge status-{{ run.status }}" id="run-status">{{ run.status }}</span>
+        <span class="muted">started {{ (run.started or run.queued) | fmt_time }}
+          {% if run.finished %}&middot; finished {{ run.finished | fmt_time }}{% endif %}</span>
+      </p>
+    </div>
+    <div class="actions">
+      {% if run.active %}
+      <form method="post" action="{{ url_for('ui.cancel_run', dump_id=dump.id, run_id=run.id) }}" id="cancel-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button type="submit" class="danger-button">Stop</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if run.params %}
+  <details class="advanced"><summary>Settings used</summary>
+    <dl class="kv">
+      {% for k, v in run.params.items() if v not in ('', None, False) %}
+      <dt>{{ k }}</dt><dd><code>{{ v }}</code></dd>
+      {% endfor %}
+    </dl>
+  </details>
+  {% endif %}
+
+  <dl class="stats" id="stats">
+    {% for key, label in [('fetched', 'fetched'), ('skipped', 'already present'), ('failed', 'unavailable'),
+                          ('missing_objects', 'missing objects'), ('recovered', 'recovered from index')] %}
+    <div><dt>{{ label }}</dt><dd data-stat="{{ key }}">{{ stats.get(key, '-') }}</dd></div>
+    {% endfor %}
+  </dl>
+
+  <pre class="log" id="log">{{ log }}</pre>
+
+  {% if not run.active and dump.kind and run.status in ('done', 'failed', 'cancelled', 'interrupted') %}
+  <p><a class="btn-link" href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}">Back to the dump &rarr;</a></p>
+  {% endif %}
+</div>
+{% endblock %}
