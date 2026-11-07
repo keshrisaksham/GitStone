@@ -1,4 +1,4 @@
-# GitStone
+# GitStone 🪦
 
 GitStone recovers whatever is still standing in a website's exposed `.git`
 directory and rebuilds the repository from it. Use it from the command line,
