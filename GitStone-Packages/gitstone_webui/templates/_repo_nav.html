@@ -1,0 +1,28 @@
+{# Shared sub-nav for every repo-browsing page: ref picker + Code/Commits/Search/Secrets tabs.
+   Included after the page sets: job, active, and (for every tab except
+   Secrets, which isn't tied to a ref) refs, current_ref and
+   switch_url_template (the current page's own URL with the ref replaced by
+   the literal token __REF__, so switching ref stays on the same kind of
+   page -- tree stays on tree, commits stays on commits, etc). #}
+<nav class="subnav">
+  <div class="subnav-row">
+    <span class="repo-name">{{ job.url }}</span>
+    <span class="job-status status-{{ job.status }}">{{ job.status }}</span>
+  </div>
+  <div class="subnav-row">
+    {% if refs is defined %}
+    <select class="ref-picker" onchange="location.href = {{ switch_url_template | tojson }}.replace('__REF__', encodeURIComponent(this.value))">
+      {% for r in refs %}
+        <option value="{{ r.name }}" {% if r.name == current_ref %}selected{% endif %}>{{ r.kind }}: {{ r.name }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <div class="tabs">
+      <a class="tab {{ 'active' if active == 'code' }}" href="{{ url_for('tree_page', job_id=job.id, ref=current_ref or '') }}">Code</a>
+      <a class="tab {{ 'active' if active == 'commits' }}" href="{{ url_for('commits_page', job_id=job.id, ref=current_ref or '') }}">Commits</a>
+      <a class="tab {{ 'active' if active == 'search' }}" href="{{ url_for('search_page', job_id=job.id, ref=current_ref or '') }}">Search</a>
+      <a class="tab {{ 'active' if active == 'secrets' }}" href="{{ url_for('secrets_page', job_id=job.id) }}">Secrets</a>
+      <a class="tab {{ 'active' if active == 'refs' }}" href="{{ url_for('refs_page', job_id=job.id, ref=current_ref or '') }}">Branches/Tags</a>
+    </div>
+  </div>
+</nav>

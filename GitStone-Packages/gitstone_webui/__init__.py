@@ -1,0 +1,1 @@
+"""GitStone's web UI."""

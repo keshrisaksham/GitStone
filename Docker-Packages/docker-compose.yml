@@ -1,0 +1,34 @@
+# Run GitStone in a container. Either from the repo root:
+#
+#   docker compose -f Docker-Packages/docker-compose.yml build
+#   docker compose -f Docker-Packages/docker-compose.yml run --rm gitstone http://target/.git /dump
+#
+# ...or from this directory, which needs no -f:
+#
+#   cd Docker-Packages
+#   docker compose build
+#   docker compose run --rm gitstone http://target/.git /dump
+#
+# Either way the build context is the repo root (see `context: ..` below),
+# since the image needs Setup-Packages/requirements-docker.txt and
+# GitStone-Packages/gitstone.py from there. Dockerfile.dockerignore,
+# co-located with the Dockerfile right here in this directory (not at the
+# context root), keeps everything else (.git, tests/,
+# GitStone-Packages/gitstone_webui/, ...) out of what gets sent to the
+# daemon -- BuildKit looks for an ignore file named after the Dockerfile
+# next to it, as well as a plain .dockerignore at the context root, so
+# this still applies even though the Dockerfile isn't at the context root.
+#
+# The /dump directory is bind-mounted to ./dump next to this file (i.e.
+# Docker-Packages/dump on the host) so the recovered repository ends up on
+# your machine. Pass any gitstone flags after the service name, e.g.:
+#
+#   docker compose -f Docker-Packages/docker-compose.yml run --rm gitstone -X POST --any-status http://target/.git /dump
+services:
+  gitstone:
+    build:
+      context: ..
+      dockerfile: Docker-Packages/Dockerfile
+    image: gitstone
+    volumes:
+      - ./dump:/dump

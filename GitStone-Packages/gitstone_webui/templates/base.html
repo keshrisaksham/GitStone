@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GitStone{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('dashboard') }}">GitStone</a>
+    <div class="topbar-actions">
+      <a class="new-dump" href="{{ url_for('import_job') }}">+ Import local dump</a>
+      <a class="new-dump" href="{{ url_for('new_job') }}">+ New dump</a>
+    </div>
+  </header>
+  {% block subnav %}{% endblock %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

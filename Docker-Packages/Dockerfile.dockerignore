@@ -1,0 +1,30 @@
+# Named after the Dockerfile and co-located with it, not at the context
+# root -- BuildKit looks for <dockerfile-name>.dockerignore next to the
+# Dockerfile itself, in addition to a plain .dockerignore at the context
+# root, so this still applies even though the build context is the repo
+# root (see docker-compose.yml's `context: ..`). The image only needs
+# Setup-Packages/requirements-docker.txt and GitStone-Packages/gitstone.py,
+# so everything else below is excluded. Note GitStone-Packages/ itself is
+# NOT excluded wholesale: gitstone.py and gitstone_webui/ are siblings in
+# there now, and only the latter (the web UI, not needed by this image) is
+# excluded -- verified that excluding a subdirectory doesn't drop its
+# sibling file.
+.git/
+.github/
+Docker-Packages/
+GitStone-Packages/gitstone_webui/
+tests/
+*.md
+LICENSE
+pyproject.toml
+setup.cfg
+Setup-Packages/requirements-local.txt
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/

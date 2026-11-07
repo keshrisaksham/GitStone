@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}New dump - GitStone{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>New dump</h1>
+  <p class="hint">Only run this against targets you're authorized to test.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('new_job') }}" class="form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <label>Target URL
+      <input type="text" name="url" placeholder="http://target.example/.git" required autofocus>
+    </label>
+
+    <div class="form-grid">
+      <label>Jobs (parallel requests)
+        <input type="number" name="jobs" value="{{ defaults.jobs }}" min="1">
+      </label>
+      <label>Retries
+        <input type="number" name="retry" value="{{ defaults.retry }}" min="1">
+      </label>
+      <label>Timeout (s)
+        <input type="number" name="timeout" value="{{ defaults.timeout }}" min="1">
+      </label>
+      <label>Delay per request (s)
+        <input type="number" name="delay" value="{{ defaults.delay }}" min="0" step="0.1">
+      </label>
+      <label>HTTP method
+        <input type="text" name="method" value="{{ defaults.method }}">
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="any_status">
+        Accept any HTTP status
+      </label>
+    </div>
+
+    <label>User-Agent
+      <input type="text" name="user_agent" value="{{ defaults.user_agent }}">
+    </label>
+
+    <label>Cookie
+      <input type="text" name="cookie" placeholder="session=abc123; theme=dark">
+    </label>
+
+    <label>Extra HTTP headers (one NAME=VALUE per line)
+      <textarea name="headers" rows="3" placeholder="Authorization=Bearer TOKEN"></textarea>
+    </label>
+
+    <label>Extra branch names to probe (one per line; main/master/staging/production/development are always tried)
+      <textarea name="branches" rows="2" placeholder="dev&#10;feature-x"></textarea>
+    </label>
+
+    <label>Proxy (socks5:host:port, socks4:host:port, or http://host:port)
+      <input type="text" name="proxy" placeholder="">
+    </label>
+
+    <div class="form-grid">
+      <label>Client certificate (.p12 path on this machine)
+        <input type="text" name="client_cert_p12" placeholder="/home/you/client.p12">
+      </label>
+      <label>Client certificate password
+        <input type="password" name="client_cert_p12_password" autocomplete="off">
+      </label>
+    </div>
+    <p class="hint">The certificate path is read by this server process, not uploaded from
+      your browser. The password is used for this run only -- it's never written to disk.</p>
+
+    <button type="submit" class="primary">Start dump</button>
+  </form>
+</div>
+{% endblock %}
