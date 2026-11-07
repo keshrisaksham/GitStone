@@ -1,0 +1,43 @@
+/* ---- Compare: version pickers ---- */
+.compare-form { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px 12px; align-items: start; margin-top: 14px; }
+.version-field > label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.combo { position: relative; }
+.combo input[type=text] {
+  width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 10px 40px 10px 14px; font: inherit; font-family: var(--mono); font-size: 13px;
+}
+.combo input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.combo input[aria-invalid="true"] { border-color: var(--del); }
+.combo-toggle {
+  position: absolute; top: 4px; right: 4px; bottom: 4px; width: 32px; display: grid; place-items: center;
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; padding: 0;
+}
+.combo-toggle:hover { background: var(--bg-hover); color: var(--text); }
+.combo-toggle svg, .swap-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.combo input[aria-expanded="true"] ~ .combo-toggle svg { transform: rotate(180deg); }
+.combo-list {
+  position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px;
+  list-style: none; max-height: 360px; overflow-y: auto; scrollbar-width: thin;
+  background: var(--bg-panel); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow);
+}
+.combo-heading { padding: 8px 10px 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.combo-option { display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+.combo-option.is-active { background: var(--accent-soft); }
+.combo-option.is-current .combo-main strong::after { content: "  \2713"; color: var(--accent); }
+.combo-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.combo-main strong { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.combo-main code { font-size: 11px; color: var(--text-muted); }
+.combo-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.combo-note { padding: 10px; font-size: 13px; color: var(--text-muted); }
+.combo-picked { margin: 6px 2px 0; min-height: 1.5em; font-size: 12.5px; }
+.combo-picked code { margin-right: 4px; }
+.swap-button {
+  margin-top: 31px; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-muted);
+}
+.swap-button:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+.compare-actions { grid-column: 1 / -1; margin-top: 4px; }
+@media (max-width: 700px) {
+  .compare-form { grid-template-columns: minmax(0, 1fr); }
+  .swap-button { margin: 0 auto; transform: rotate(90deg); }
+}

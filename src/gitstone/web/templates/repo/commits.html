@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Commits at {{ ref }}{% endblock %}
+{% set active = 'commits' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <h1>Commits{% if path %} touching <code>{{ path }}</code>{% endif %}</h1>
+  <ul class="commit-list">
+    {% for c in commits %}
+    <li>
+      <a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=c.sha) }}">{{ c.summary }}</a>
+      <span class="commit-meta"><code>{{ c.short }}</code> &middot; {{ c.author }} &middot; {{ c.author_time | fmt_time }}
+        &middot; <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=c.sha) }}">browse files</a></span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if not commits %}<p class="empty">No commits found.</p>{% endif %}
+  {% if has_more %}
+  <a class="primary-link" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=ref, path=path, skip=next_skip) }}">Older commits &rarr;</a>
+  {% endif %}
+</div>
+{% endblock %}

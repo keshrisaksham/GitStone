@@ -7,9 +7,11 @@
 * **CSRF.** Every POST needs the per-session token the forms carry.
 * **Host check.** Without a token (loopback-only use) requests must name a
   loopback host, which defeats DNS-rebinding attacks from a web page.
-* **Headers.** A strict CSP (no inline script, no external assets) plus
-  ``nosniff`` and ``no-referrer`` on everything, since the pages render
-  content that came from an untrusted site.
+* **Headers.** A strict CSP (no inline script, no external assets), ``nosniff``,
+  and a same-origin-only ``Referrer-Policy`` on everything, since the pages
+  render content that came from an untrusted site: nothing here is ever sent
+  to another site as a referrer, but the UI's own pages can still see a
+  same-origin referrer (used for the in-app "back" link).
 """
 import hashlib
 import hmac
@@ -90,7 +92,10 @@ def install(app, token):
     def headers(response):
         response.headers.setdefault("Content-Security-Policy", CSP)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        # "same-origin" (not "no-referrer"): never leaks anything to another
+        # site, but still lets the UI's own pages see where a same-origin
+        # navigation came from (see js/common.js's [data-back-link]).
+        response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Cache-Control", "no-store")
         return response

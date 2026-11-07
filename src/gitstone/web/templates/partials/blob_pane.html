@@ -1,0 +1,40 @@
+{# The viewer fragment for a blob found by sha (secrets scan, history search):
+   returned on its own for the side pane, and included in blob_sha.html for
+   the no-JavaScript full page. #}
+{% from "partials/code.html" import code_table %}
+<div class="pane-head">
+  <div class="pane-title">
+    {% set kind, sensitive = file_kind(name) %}
+    <span class="ft ft-{{ kind }}"></span>
+    <strong class="wrap">{{ name }}</strong>
+    {% if language %}<span class="chip">{{ language }}</span>{% endif %}
+    {% if sensitive %}<span class="chip chip-danger">sensitive</span>{% endif %}
+  </div>
+  <div class="file-actions">
+    {% if lines is not none %}
+    <button type="button" class="tool-button" data-toggle-wrap>Wrap</button>
+    <button type="button" class="tool-button" data-copy-code>Copy</button>
+    {% endif %}
+    <a class="tool-button" href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=sha, line=highlight_line, name=name if (locations or name != sha) else none, commit=locations[0][0] if locations else none) }}" title="Open on its own page">Open &#8599;</a>
+    <a class="tool-button" href="{{ url_for('browse.raw_object', dump_id=dump.id, sha=sha) }}">Raw</a>
+    <button type="button" class="tool-button" data-close-pane aria-label="Close">&times;</button>
+  </div>
+</div>
+<p class="blob-meta">
+  blob <code>{{ sha[:10] }}</code> &middot; {{ size | fmt_size }}
+  {% if locations %}
+    &middot; found in
+    {% for commit_sha, path in locations %}
+      <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=commit_sha, subpath=path, line=highlight_line) }}"><code>{{ path }}</code>@<code>{{ commit_sha[:8] }}</code></a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  {% else %}
+    &middot; <span class="muted">not reachable from any ref in this dump (an orphaned object)</span>
+  {% endif %}
+</p>
+{% if binary %}
+  <p class="empty">Binary content not shown.</p>
+{% elif too_big %}
+  <p class="empty">Too large to preview ({{ size }} bytes).</p>
+{% else %}
+  {{ code_table(lines, highlight_line, language) }}
+{% endif %}

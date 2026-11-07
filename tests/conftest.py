@@ -1,24 +1,13 @@
-"""Shared fixtures: a small real git repository, and an HTTP server that
-exposes it the way a misconfigured website would (no directory listings)."""
+"""Shared fixtures: a small real git repository, an HTTP server that exposes it
+the way a misconfigured website would (no directory listings), the same
+repository opened for reading, and the Flask app with its test client."""
 import os
-import subprocess
 
 import pytest
 
-from helpers import Server
-
-GIT_ENV = {
-    "GIT_AUTHOR_NAME": "t",
-    "GIT_AUTHOR_EMAIL": "t@t",
-    "GIT_COMMITTER_NAME": "t",
-    "GIT_COMMITTER_EMAIL": "t@t",
-}
-
-
-def git(cwd, *args):
-    env = dict(os.environ, **GIT_ENV)
-    subprocess.run(["git", *args], cwd=cwd, env=env, check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+from gitstone.viewer import reader
+from gitstone.web import create_app
+from tests.helpers import Server, git
 
 
 @pytest.fixture
@@ -46,3 +35,21 @@ def server(repo):
     s = Server(repo)
     yield s
     s.close()
+
+
+@pytest.fixture
+def opened(repo):
+    """``repo`` opened with the read-only viewer."""
+    r = reader.open_repo(str(repo))
+    yield r
+    r.close()
+
+
+@pytest.fixture
+def app(tmp_path):
+    return create_app(str(tmp_path / "workspace"))
+
+
+@pytest.fixture
+def client(app):
+    return app.test_client()

@@ -1,0 +1,25 @@
+{# A file from under .git: returned on its own for the side pane and included
+   in gitfile.html for the no-JavaScript page. #}
+{% from "partials/code.html" import code_table %}
+<div class="pane-head">
+  <div class="pane-title">
+    <span class="ft ft-config"></span>
+    <strong class="wrap">{{ name }}</strong>
+    <span class="chip">git metadata</span>
+  </div>
+  <div class="file-actions">
+    {% if lines is not none %}
+    <button type="button" class="tool-button" data-toggle-wrap>Wrap</button>
+    <button type="button" class="tool-button" data-copy-code>Copy</button>
+    {% endif %}
+    <button type="button" class="tool-button" data-close-pane aria-label="Close">&times;</button>
+  </div>
+</div>
+<p class="blob-meta">{{ size | fmt_size }} &middot; read straight from the recovered <code>.git</code> directory, not from an object</p>
+{% if binary %}
+  <p class="empty">Binary content not shown.</p>
+{% elif too_big %}
+  <p class="empty">Too large to preview ({{ size }} bytes).</p>
+{% else %}
+  {{ code_table(lines, highlight_line, language) }}
+{% endif %}

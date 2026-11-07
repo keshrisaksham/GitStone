@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ name }}{% endblock %}
+{% set active = 'secrets' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel" id="blob-pane-full">
+  <p class="nav-back">
+    <a data-back-link data-back-fallback="{{ url_for('tools.secrets_page', dump_id=dump.id) }}"
+       data-back-fallback-label="Secrets scan" href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}">&larr; Secrets scan</a>
+  </p>
+  {% include "partials/gitfile_pane.html" %}
+</div>
+{% endblock %}

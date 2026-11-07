@@ -1,0 +1,36 @@
+{# Left pane for every repo-browsing page: the dump, the ref picker, and the
+   tools. The page sets `dump` and `active`; refs, current_ref and
+   switch_url_template (the current page's own URL with the ref replaced by
+   the literal token __REF__) are optional -- without a current ref only the
+   ref-independent entries are shown. #}
+<aside class="sidebar">
+  <div class="side-repo">
+    <a class="repo-name" href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}" title="Dump overview">{{ dump.url }}</a>
+    <span class="badge status-{{ dump.status }}">{{ dump.status }}</span>
+  </div>
+  {% if refs is defined and refs %}
+  <label class="side-label" for="ref-picker">Branch / tag</label>
+  <select id="ref-picker" class="ref-picker" data-url-template="{{ switch_url_template }}" aria-label="Branch or tag">
+    {% for r in refs %}
+      <option value="{{ r.name }}" {% if r.name == current_ref %}selected{% endif %}>{{ r.kind }}: {{ r.name }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  <nav class="side-nav" aria-label="Repository">
+    {% if current_ref %}
+    <span class="side-title">Browse</span>
+    <a class="side-link {{ 'active' if active == 'code' }}" href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9776;</span>Code</a>
+    <a class="side-link {{ 'active' if active == 'commits' }}" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9201;</span>Commits</a>
+    <a class="side-link {{ 'active' if active == 'refs' }}" href="{{ url_for('browse.refs_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9095;</span>Branches &amp; tags</a>
+    <a class="side-link {{ 'active' if active == 'compare' }}" href="{{ url_for('tools.compare_page', dump_id=dump.id, head=current_ref) }}"><span class="side-icon">&#8644;</span>Compare</a>
+    <span class="side-title">Tools</span>
+    <a class="side-link {{ 'active' if active == 'search' }}" href="{{ url_for('tools.search_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#8981;</span>Search</a>
+    {% endif %}
+    <a class="side-link {{ 'active' if active == 'secrets' }}" href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}"><span class="side-icon">&#9888;</span>Secrets scan</a>
+    <a class="side-link {{ 'active' if active == 'difference' }}" href="{{ url_for('tools.difference_page', dump_id=dump.id) }}"><span class="side-icon">&#177;</span>Difference</a>
+    <a class="side-link {{ 'active' if active == 'timeline' }}" href="{{ url_for('tools.timeline_page', dump_id=dump.id) }}"><span class="side-icon">&#9636;</span>Timeline</a>
+    <span class="side-title">Dump</span>
+    <a class="side-link" href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}"><span class="side-icon">&#9881;</span>Overview &amp; runs</a>
+    <a class="side-link" href="{{ url_for('ui.download', dump_id=dump.id) }}"><span class="side-icon">&#8681;</span>Download .zip</a>
+  </nav>
+</aside>

@@ -1,7 +1,116 @@
-"""Test doubles shared by several test modules."""
+"""Shared test support: git, paths, the fake servers, and the small helpers the
+web and analysis tests all use. Fixtures live in ``conftest.py``."""
 import http.server
 import os
+import re
+import subprocess
 import threading
+import time
+
+from gitstone.viewer import reader
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC = os.path.join(REPO_ROOT, "src", "gitstone", "web", "static")
+
+GIT_ENV = {
+    "GIT_AUTHOR_NAME": "t",
+    "GIT_AUTHOR_EMAIL": "t@t",
+    "GIT_COMMITTER_NAME": "t",
+    "GIT_COMMITTER_EMAIL": "t@t",
+}
+
+
+def git(cwd, *args):
+    env = dict(os.environ, **GIT_ENV)
+    subprocess.run(["git", *args], cwd=cwd, env=env, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def commit_all(repo, msg):
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", msg)
+
+
+def drop(repo, sha):
+    """Delete a loose object, the way an incomplete dump never fetched it."""
+    sha = sha.decode() if isinstance(sha, bytes) else sha
+    os.remove(repo / ".git" / "objects" / sha[:2] / sha[2:])
+
+
+def reopen(repo):
+    r = reader.open_repo(str(repo))
+    commit, _ = reader.resolve_commit(r, "master")
+    return r, commit
+
+
+def two_commits(repo):
+    """``(head_sha, parent_sha)`` of master."""
+    r = reader.open_repo(str(repo))
+    try:
+        head, head_sha = reader.resolve_commit(r, "master")
+        parent = r.object_store[head.parents[0]]
+        return head_sha, parent.id.decode()
+    finally:
+        r.close()
+
+
+def stage_password_edit(repo):
+    """Commit auth.js with one password, then stage (but never commit) another."""
+    (repo / "auth.js").write_text("const a = 1;\nconst password = 'thisissupersafe';\n")
+    commit_all(repo, "auth")
+    (repo / "auth.js").write_text("const a = 1;\nconst password = 'OctopiFociPilfer45';\n")
+    (repo / "added.env").write_text("DB_PASSWORD=Sup3rS3cretValue\n")
+    git(repo, "add", "auth.js", "added.env")
+
+
+def minified(secret_line):
+    """One physical line far over the old 2000-character limit."""
+    return '{"a":"b",' * 400 + secret_line + ',"c":1' * 300 + "}\n"
+
+
+def git_config_with_credentials(repo):
+    cfg = repo / ".git" / "config"
+    cfg.write_text(cfg.read_text() + '[remote "origin"]\n\turl = https://deploy:s3cr3tTokenValue9@git.example.com/x.git\n')
+
+
+# ---- driving the web UI through Flask's test client
+def csrf_of(client, path="/new"):
+    html = client.get(path).get_data(as_text=True)
+    m = re.search(r'name="csrf" value="([^"]+)"', html)
+    assert m, "no csrf token found on %s" % path
+    return m.group(1)
+
+
+def post(client, path, data=None, csrf_from="/new", **kw):
+    data = dict(data or {})
+    data.setdefault("csrf", csrf_of(client, csrf_from))
+    return client.post(path, data=data, **kw)
+
+
+def ids_from(response):
+    """(dump_id, run_id) from the redirect to /dumps/<id>[/runs/<n>]."""
+    assert response.status_code == 302, response.get_data(as_text=True)
+    parts = response.headers["Location"].split("/")
+    dump_id = parts[parts.index("dumps") + 1]
+    run_id = int(parts[-1]) if "runs" in parts else None
+    return dump_id, run_id
+
+
+def wait_run(app, dump_id, run_id, timeout=20):
+    dump = app.store.get(dump_id)
+    run = dump.get_run(run_id)
+    deadline = time.time() + timeout
+    while time.time() < deadline and run.active:
+        time.sleep(0.05)
+    assert not run.active, "run still %s" % run.status
+    return run
+
+
+def import_dump(app, client, repo):
+    """Import ``repo`` from disk through the UI and wait for it; returns the dump id."""
+    dump_id, run_id = ids_from(post(client, "/import", {"path": str(repo)}, csrf_from="/import"))
+    wait_run(app, dump_id, run_id)
+    return dump_id
 
 
 class Server:

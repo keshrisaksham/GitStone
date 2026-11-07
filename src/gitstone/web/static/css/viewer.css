@@ -1,0 +1,113 @@
+/* ---- code viewer: a rounded card; its header stays put while the code scrolls ---- */
+.viewer-card { padding: 0; }
+.viewer-top { padding: 20px 26px 14px; }
+.viewer-top > :last-child { margin-bottom: 0; }
+.viewer-top .breadcrumbs, .viewer-top .version-banner { margin-bottom: 12px; }
+
+.file-bar, .pane-head {
+  position: sticky; top: var(--topbar-h); z-index: 20;
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px;
+  background: var(--bg-raised); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 10px 18px; font-size: 13px; color: var(--text-muted);
+}
+.file-info, .pane-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.pane-title strong { color: var(--text); font-weight: 600; }
+.file-actions { display: flex; gap: 6px; align-items: center; }
+.tool-button {
+  background: var(--bg-panel); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; line-height: 1.5;
+}
+.tool-button:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.blob-meta { padding: 10px 18px; margin: 0; border-bottom: 1px solid var(--border); background: var(--bg-panel); }
+.blob-meta code { background: var(--bg-raised); }
+.viewer-card > .empty, .split-pane > .empty { padding: 24px 26px; margin: 0; }
+
+.code-wrap { overflow-x: auto; background: var(--code-bg); color: var(--code-fg); }
+.viewer-card > .code-wrap:last-child { border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px); }
+.blob { font: 13px/1.65 var(--mono); font-variant-ligatures: none; width: 100%; border-collapse: collapse; tab-size: 4; }
+.blob td { padding: 0; }
+.blob .ln { color: var(--code-ln); text-align: right; padding: 0 14px 0 18px; min-width: 56px; width: 1%; user-select: none; vertical-align: top; border-right: 1px solid var(--code-border); }
+.blob .ln a { color: var(--code-ln); }
+.blob .ln a:hover { color: var(--accent); text-decoration: none; }
+.blob .code pre { margin: 0; white-space: pre; word-break: normal; padding: 0 18px 0 16px; }
+.code-wrap.wrapped .blob .code pre { white-space: pre-wrap; word-break: break-word; }
+.blob tr:hover td.code, .blob tr:hover td.ln { background: var(--code-hover); }
+.blob tr:hover .ln a { color: var(--code-ln-active); }
+.blob tr:target td, .blob tr.hl-line td { background: var(--hl-line); }
+.blob tr:target .ln, .blob tr.hl-line .ln { box-shadow: inset 3px 0 0 var(--accent); }
+.blob tr[id] { scroll-margin-top: calc(var(--topbar-h) + 90px); }
+.blob:first-child tr:first-child td { padding-top: 8px; }
+.blob tr:last-child td { padding-bottom: 8px; }
+
+.version-banner { background: var(--warn-bg); border: 1px solid var(--warn); border-radius: var(--radius-md); padding: 9px 14px; margin: 0 0 12px; font-size: 13px; }
+.warn-note { background: var(--warn-bg); color: var(--text); border-left: 3px solid var(--warn); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 8px 14px; margin: 8px 0; font-size: 13px; }
+
+/* ---- syntax colours: Pygments' short token classes, painted like VS Code ---- */
+.code { color: var(--code-fg); }
+.code .k, .code .kr, .code .kn, .code .ow { color: var(--syn-ctl); }
+.code .kd, .code .kc, .code .kp, .code .bp { color: var(--syn-kw); }
+.code .kt, .code .nc, .code .nn, .code .ne, .code .nb { color: var(--syn-cls); }
+.code .n, .code .nx, .code .nv, .code .vc, .code .vg, .code .vi, .code .vm, .code .py { color: var(--syn-var); }
+.code .nf, .code .fm, .code .nd { color: var(--syn-fn); }
+.code .no, .code .ni { color: var(--syn-const); }
+.code .nl { color: var(--syn-var); }
+.code .nt { color: var(--syn-tag); }
+.code .na { color: var(--syn-attr); }
+.code .s, .code .s1, .code .s2, .code .sa, .code .sb, .code .sc, .code .sd, .code .sh,
+.code .sx, .code .ss, .code .dl, .code .si { color: var(--syn-str); }
+.code .se { color: var(--syn-esc); }
+.code .sr { color: var(--syn-rx); }
+.code .m, .code .mb, .code .mf, .code .mh, .code .mi, .code .mo, .code .il { color: var(--syn-num); }
+.code .c, .code .c1, .code .cm, .code .cs, .code .ch, .code .cpf, .code .sd.docstring { color: var(--syn-com); }
+.code .cp { color: var(--syn-pre); }
+.code .o { color: var(--syn-op); }
+.code .p, .code .w { color: var(--code-fg); }
+.code .err { color: inherit; background: none; }
+.code .gd { color: var(--del); } .code .gi { color: var(--add); }
+.code .gh, .code .gu { color: var(--syn-cls); font-weight: 600; }
+.code .ge { font-style: italic; } .code .gs { font-weight: 700; }
+/* a few languages colour the same token differently in VS Code */
+:is(.lang-json .code, .code.lang-json) .nt, :is(.lang-yaml .code, .code.lang-yaml) .nt { color: var(--syn-key); }
+:is(.lang-json .code, .code.lang-json) .s2 { color: var(--syn-str); }
+:is(.lang-ini .code, .code.lang-ini) .k, :is(.lang-properties .code, .code.lang-properties) .k, :is(.lang-ini .code, .code.lang-ini) .na, :is(.lang-properties .code, .code.lang-properties) .na { color: var(--syn-var); }
+:is(.lang-css .code, .code.lang-css) .nt, :is(.lang-css .code, .code.lang-css) .nc { color: var(--syn-tag); }
+:is(.lang-css .code, .code.lang-css) .k, :is(.lang-css .code, .code.lang-css) .nv { color: var(--syn-attr); }
+:is(.lang-markdown .code, .code.lang-markdown) .gh, :is(.lang-markdown .code, .code.lang-markdown) .gu { color: var(--syn-kw); }
+
+/* ---- commit / difference: file list and per-file diff cards ---- */
+.file-index { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.file-index li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 4px 0; }
+.fstatus { display: inline-block; width: 22px; text-align: center; border-radius: 6px; font-size: 11px; font-weight: 700; padding: 1px 0; background: var(--bg-hover); color: var(--text-muted); flex: none; }
+.fstatus-added { background: var(--add-bg); color: var(--add); }
+.fstatus-deleted { background: var(--del-bg); color: var(--del); }
+.fstatus-modified, .fstatus-mode { background: var(--warn-bg); color: var(--warn); }
+
+details.file-diff { border: 1px solid var(--border); border-radius: var(--radius-md); margin: 16px 0; background: var(--code-bg); }
+details.file-diff > summary {
+  position: sticky; top: var(--topbar-h); z-index: 20; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
+  padding: 10px 16px; cursor: pointer; background: var(--bg-raised); color: var(--text);
+  border-radius: calc(var(--radius-md) - 1px); list-style-position: inside;
+}
+details.file-diff[open] > summary { border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0; border-bottom: 1px solid var(--border); }
+details.file-diff .file-links { margin-left: auto; font-size: 12px; display: flex; gap: 10px; }
+details.file-diff[id] { scroll-margin-top: calc(var(--topbar-h) + 16px); }
+details.file-diff > p { margin: 10px 16px; }
+
+.diff {
+  margin: 0; background: var(--code-bg); color: var(--code-fg); font-size: 13px; line-height: 1.65;
+  padding: 8px 0; overflow-x: auto; white-space: pre; word-break: normal;
+}
+details.file-diff > .diff { border-radius: 0 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px); }
+:not(details) > .diff { border: 1px solid var(--border); border-radius: var(--radius-md); }
+.diff > span { display: block; padding: 0 16px; min-width: max-content; min-height: 1.65em; }
+.diff-add { background: var(--add-bg); }
+.diff-del { background: var(--del-bg); }
+.diff .dp { margin-right: 1ch; font-weight: 700; opacity: .85; }
+.diff-add .dp { color: var(--add); }
+.diff-del .dp { color: var(--del); }
+.diff-hunk { color: var(--accent); background: var(--accent-soft); }
+.diff-meta, .diff-file { color: var(--text-muted); }
+.diffstat { font-size: 13px; font-weight: normal; }
+.diff-add .diffstat, .diffstat .diff-add { background: none; color: var(--add); }
+.diffstat .diff-del { background: none; color: var(--del); }
+.diffstat .diff-add, .diffstat .diff-del { display: inline; padding: 0; }

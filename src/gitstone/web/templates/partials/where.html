@@ -1,0 +1,14 @@
+{# Where a finding/hit lives, linked to the right viewer. `x` is a Finding or
+   SearchHit: a blob (by sha), a file under .git, or a commit/tag object. #}
+{% macro where_link(x, dump, loc=none, label=none) %}
+{% if x.source == 'file' %}
+  <a data-pane href="{{ url_for('tools.gitfile_page', dump_id=dump.id, subpath=x.ref_id, line=x.line_no) }}">{{ label or x.path }}:{{ x.line_no }}</a>
+  <span class="muted">(git file)</span>
+{% elif x.source in ('commit', 'tag') %}
+  <a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=x.ref_id) }}">{{ label or x.path }}</a>
+  <span class="muted">(message, line {{ x.line_no }})</span>
+{% else %}
+  <a data-pane href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=x.blob_sha, line=x.line_no, name=loc[1] if loc else none, commit=loc[0] if loc else none) }}">
+    {% if label %}{{ label }}{% elif loc %}{{ loc[1] }}{% else %}blob {{ x.blob_sha[:10] }}{% endif %}:{{ x.line_no }}</a>
+{% endif %}
+{% endmacro %}

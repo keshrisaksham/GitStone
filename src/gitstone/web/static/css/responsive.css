@@ -1,0 +1,19 @@
+/* ---- narrow screens: the sidebar becomes a tab strip under the top bar ---- */
+@media (max-width: 900px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { position: static; width: auto; bottom: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 12px; }
+  .shell.has-sidebar main { margin: 0; padding: 18px 14px 40px; }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .side-link { flex: none; white-space: nowrap; }
+  .side-title { display: block; flex: none; width: 1px; align-self: stretch; margin: 2px 6px; padding: 0; font-size: 0; background: var(--border); }
+  .side-title:first-child { display: none; }
+  .split.has-pane { grid-template-columns: minmax(0, 1fr); }
+  .split-pane { position: static; max-height: none; }
+  .split-pane .pane-head { top: var(--topbar-h); }
+}
+@media (max-width: 600px) {
+  main, .shell.has-sidebar main { padding: 12px 8px 32px; }
+  .panel { padding: 16px; }
+  .topbar { padding: 0 12px; }
+  .jump-nav { bottom: 14px; right: 14px; }
+}

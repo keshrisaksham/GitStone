@@ -36,16 +36,16 @@ GitStone runs straight from a checkout, or as a container.
 
 **From a checkout:** you need Python 3.10+, `git`, and these Python packages
 (from your distribution or however you normally get them): `beautifulsoup4`,
-`dulwich`, `Flask`, `PySocks`, `requests`, `requests-pkcs12`, `waitress`.
+`dulwich`, `Flask`, `Pygments`, `PySocks`, `requests`, `requests-pkcs12`, `waitress`.
 
 ```bash
 git clone <this repository> && cd GitStone
-./bin/gitstone-ui          # the web UI
-./bin/gitstone URL DIR     # the command line
+./scripts/gitstone-ui      # the web UI
+./scripts/gitstone URL DIR # the command line
 ```
 
 The rest of this document writes `gitstone` and `gitstone-ui` for those two
-commands; add `./bin/` in front of them (or put `bin/` on your `PATH`).
+commands; add `./scripts/` in front of them (or put `scripts/` on your `PATH`).
 
 Developed and tested on Linux. The workers are forked processes, so Windows is not supported.
 
@@ -120,13 +120,88 @@ again resumes.
 
 ### Browsing, downloading, importing
 
-Once a dump has refs, **Browse repository** gives you a GitHub-style view:
-file tree and blob viewer at any branch, tag or commit; commit history with
-coloured diffs; search of the tree or of commit messages; and a **Secrets**
-scan of *every* blob in the dump (AWS keys, private keys, tokens, `.env`
-lines), which finds credentials that were committed once and deleted later.
+Once a dump has refs, **Browse repository** gives you a GitHub-style view,
+with the tools in a pane on the left:
+
+* **Code** -- file tree and syntax-highlighted blob viewer at any branch, tag
+  or commit sha. Files are coloured by type, names that usually hold
+  credentials (`.env`, `wp-config.php`, `id_rsa`, `*.sql`, ...) are flagged
+  *sensitive*, the line numbers are anchors (`#L12`), and there is a file
+  filter (press `/`).
+* **Commits** -- history with a per-file change list (added / modified /
+  deleted) and coloured diffs; *Browse files at this version* opens the tree as
+  of any commit, and **Compare** diffs any two refs or commits.
+* **Search** -- plain text or **regular expressions**, over the files at a ref,
+  over *every version of every file in the history* (deleted and overwritten
+  files included), over commit messages, over **git metadata** (`.git/config`,
+  hooks, logs, and every commit and tag message in the dump, reachable or not),
+  or for **high-entropy strings**. Lines of any length are searched; a minified
+  one-line file is shown as a window around the match.
+* **Secrets scan** -- every blob in the dump, so credentials committed once and
+  deleted later turn up: cloud/API keys and tokens, private keys, URLs with
+  `user:password@`, `password = ...` / `username = ...` assignments, `.htpasswd`
+  lines, WordPress `define('DB_PASSWORD', ...)`, plus an optional regex of your
+  own. Findings carry a severity and the path/commit they live at, a repeat of
+  one already shown can be collapsed with *hide duplicates*, and clicking a
+  result opens the file in a pane on the right with the line highlighted.
+  Options (off by default): *also scan git metadata* (config, hooks, logs,
+  commit/tag messages and authors, including commits no branch reaches),
+  *also flag high-entropy strings* (long random-looking values no rule names
+  -- hashes, UUIDs, paths and lockfile integrity strings are filtered out), and
+  *run in the background*. Lines of any length are always checked.
+* **Background scans** -- *run in the background* (secrets scan, and search
+  except for the single-ref scopes) lifts the foreground object/time caps,
+  shows live progress, can be cancelled, and renders the same results page when
+  it finishes. Jobs live in memory only, so a server restart forgets them.
+* **Compare** -- diff any two versions. Each side has a version picker: open it to
+  browse branches, tags and recent commits (with their messages and dates), or
+  type a name, a commit message or a sha to filter it. Abbreviated shas, the
+  wrong case and stray spaces are accepted, and a version that cannot be found
+  is reported next to its own field with a "did you mean", so the form and what
+  you typed survive. The swap button exchanges base and head.
+* **Timeline** -- every file a commit added, changed, or removed, across
+  *every* branch and tag, newest first; a *Gone now* section up top is every
+  path that's gone from the current tree but existed at some point (a removed
+  `.env`, a backup script, a debug route "cleaned up" later) with a one-click
+  link to its last content, and a *Referenced but missing* section above it
+  lists files that Dockerfiles, compose files, shell scripts and CI configs
+  point at but that are not in the repository (a `COPY config.production.json`
+  whose file was never committed usually still sits on the server). Built for a dump recovered during a pentest or an
+  HTB-style box, where the real question usually isn't "what does this one
+  commit look like" but "what changed, and what used to be here."
+* **Difference** -- everything that was `git add`-ed but never committed (the
+  index against HEAD, like `git diff --cached`). Edits staged and then
+  forgotten are a classic leak: their blobs sit in the object store though no
+  commit or branch points at them. Credentials on the added lines are listed
+  on top, with the committed line each one replaced.
+* **Hide duplicates** -- the secrets scan, search (all three scopes) and the
+  timeline each have the switch. A repeat is the same matched line (or commit
+  message), or the same change to the same file content, as an earlier row.
+
+In the secrets scan, findings are ranked rather than listed in storage order:
+staged-but-uncommitted edits first, then secrets that exist in no commit, with
+version numbers, template placeholders and `process.env` lookups dropped and
+test/fixture paths ranked lower. The limit is applied after ranking.
+
+Browser tabs read `GitStone | <page>` (plus the dump's host), with a tombstone
+as the icon. The interface has a light and a dark theme (the button in the top bar; it
+follows your system setting until you choose), a fixed top bar and sidebar, and
+code shown in a rounded card whose header (file details, Wrap / Copy / Raw)
+stays in view while you scroll -- on a file's own page, in the side pane, and
+on every file in a diff. Code is coloured with VS Code's Dark+ and Light+
+palettes, including inside diffs; a blob with no usable file name (one opened
+by its sha) is recognised from its content.
+
+Recovered repositories are usually incomplete. A missing parent commit, tree
+or blob never turns into an error page: the commit page says which objects are
+missing and still shows everything it can.
+
 Everything is read through [dulwich](https://www.dulwich.io/); nothing here
-makes a network call.
+makes a network call. Highlighting uses [Pygments](https://pygments.org/) (and
+degrades to plain text without it). Regular expressions run server-side with
+Python's `re`, which cannot be interrupted: don't expose the UI to people you
+wouldn't trust with a CPU core (the pattern length is capped, and `--lan`
+requires a token anyway).
 
 **Download .zip** hands the recovered files (with or without `.git`) to
 whoever is looking at the page, which is how other machines on the network
@@ -257,6 +332,11 @@ does that on request from a browser, so:
   tunnel off a trusted network.
 * **Importing from disk is off on the network** unless `--import-root` names
   a directory; paths are resolved before they are checked against it.
+* **The `.git` file viewer cannot be used to read the host.** The metadata
+  scan and `/gitfile/` read only regular files that resolve to somewhere inside
+  the recovered `.git` directory and never follow symlinks (a link planted at
+  `.git/config` pointing at `/etc/passwd` is ignored); the object store is
+  refused.
 * **Recovered content never runs in the UI.** Everything from the target is
   rendered through Jinja's autoescaping; raw downloads are attachments with
   `nosniff`; a strict CSP forbids inline script and external assets; the zip
@@ -277,7 +357,7 @@ does that on request from a browser, so:
 ## Project layout
 
 ```
-bin/                      gitstone, gitstone-ui: launchers that run from a checkout
+scripts/                  gitstone, gitstone-ui: launchers that run from a checkout
 pyproject.toml            package metadata and the `gitstone` / `gitstone-ui` entry points
 Dockerfile, compose.yaml  the web UI as a container
 src/gitstone/
@@ -291,9 +371,20 @@ src/gitstone/
     http.py, proxy.py       sessions, retries/backoff, proxy parsing
     paths.py, options.py    traversal-safe file writes; header/branch parsing
     git_objects.py, log.py, errors.py, mp.py
-  viewer/                 read-only repository inspection (dulwich)
-    reader.py               refs, trees, blobs, commits, diffs
-    search.py, secrets.py, integrity.py
+  viewer/                 reading a recovered repository and presenting it (dulwich)
+    reader.py               refs, trees, blobs, commits, tolerant diffs/compare
+    history.py              blob -> path lookup, staged index vs HEAD
+    timeline.py             every file-level change across all history, newest first
+    versions.py             branches, tags and commits for the Compare picker
+    highlight.py            Pygments: blobs, diff lines, file kinds
+    integrity.py, dedupe.py completeness check; marking repeated result rows
+  analysis/               hunting in a recovered repository
+    walk.py                 the one pass over the object store the scans share
+    secrets.py, entropy.py  credential patterns and ranking; high-entropy strings
+    search.py               text/regex search (tree, history, git metadata, entropy)
+    metadata.py             .git files and commit/tag messages as scan sources
+    references.py           files Dockerfiles/compose/scripts point at but that are absent
+    lines.py                long-line segmenting and snippets
   actions/                the dumper's functions described as data
     spec.py                 Action, Param, RunContext
     params.py, runtime.py   shared parameters; values -> Config
@@ -302,28 +393,36 @@ src/gitstone/
     app.py                  create_app(): wiring
     security.py             token auth, CSRF, host check, headers
     store.py                dumps and runs on disk
-    runner.py               one-at-a-time background queue, cancel, live stats
+    runner.py, scans.py     the dump queue; background scans with progress and cancel
     blueprints/ui.py        dashboard, new/import, functions, runs, download
-    blueprints/browse.py    tree, blob, commits, diff, search, secrets
+    blueprints/browse.py    refs, tree, blob, commits, commit diff
+    blueprints/tools.py     compare, search, secrets scan, timeline, difference, .git files
+    blueprints/common.py    opening a dump per request, the ref picker, diff rendering
     server.py               the `gitstone-ui` command
-    templates/, static/     HTML, one stylesheet, one script (no external assets)
+    templates/              base page; partials/ (reusable fragments); repo/ (pages about a repository)
+    static/                 css/ (tokens, base, layout, components, viewer, results, responsive,
+                            compare), js/ (one file per feature), img/; no external assets
   cli.py                  the `gitstone` command
-tests/                    pytest suite
+tests/                    mirrors src/: dumper/ (core, stages, actions, cli), viewer/, analysis/, web/
+  conftest.py             fixtures: repo, server, opened, app, client
+  helpers.py              git, the fake servers, and the helpers the web/analysis tests share
 ```
 
-Dependencies point one way: `core` imports nothing else from the package;
-`viewer` and `actions` use `core` (and `actions` uses `viewer`); `web` uses
-all of them; `cli` uses `core`.
+Dependencies point one way. `core` imports nothing else from the package, and
+neither does `viewer`; `analysis` uses `viewer`; `actions` uses `core` and
+`viewer`; `web` uses all four; `cli` uses `core`.
 
 ## Development
 
 ```bash
-python -m pytest        # needs pytest, plus the dependencies listed under Install
+python -m pytest                 # needs pytest, plus the dependencies listed under Install
+python -m pytest tests/analysis  # one area; the folders match the packages under src/gitstone
 ```
 
 The tests serve a real repository over HTTP (no directory listing, with failure
 injection, and a small forward proxy) and run the dumper, the CLI, the actions
-and the Flask app against it.
+and the Flask app against it. A new test goes in the folder of the package it
+exercises; page-level tests (anything using `client`) go in `tests/web`.
 
 ## Credits
 

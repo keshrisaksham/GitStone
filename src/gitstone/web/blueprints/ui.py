@@ -70,7 +70,14 @@ def logout():
 
 @bp.route("/")
 def dashboard():
-    return flask.render_template("dashboard.html", dumps=app().store.list())
+    dumps = app().store.list()
+    counts = {
+        "total": len(dumps),
+        "busy": sum(1 for d in dumps if d.busy),
+        "done": sum(1 for d in dumps if d.status == "done"),
+        "failed": sum(1 for d in dumps if d.status in ("failed", "interrupted")),
+    }
+    return flask.render_template("dashboard.html", dumps=dumps, counts=counts)
 
 
 @bp.route("/functions")

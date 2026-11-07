@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "partials/dedupe.html" import dedupe_toggle %}
+{% from "partials/where.html" import where_link %}
+{% set paned = scope in ('blobs', 'meta', 'entropy') %}
+{% block title %}Search{% endblock %}
+{% set active = 'search' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Search</h1>
+  <form method="get" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="{{ 'regular expression, e.g. (user|login)\\s*=\\s*\\S+' if regex else 'text to find' }}" autofocus data-search-input>
+    <select name="scope" aria-label="Where to search">
+      <option value="tree" {% if scope == 'tree' %}selected{% endif %}>files at this ref</option>
+      <option value="blobs" {% if scope == 'blobs' %}selected{% endif %}>all file contents in history</option>
+      <option value="history" {% if scope == 'history' %}selected{% endif %}>commit messages</option>
+      <option value="meta" {% if scope == 'meta' %}selected{% endif %}>git metadata (.git files, all commit &amp; tag messages)</option>
+      <option value="entropy" {% if scope == 'entropy' %}selected{% endif %}>high-entropy strings (query optional)</option>
+    </select>
+    <button type="submit" class="primary">Search</button>
+    <div class="search-options">
+      <label><input type="checkbox" name="regex" value="1" {% if regex %}checked{% endif %}> regular expression</label>
+      <label><input type="checkbox" name="case" value="1" {% if not ignore_case %}checked{% endif %}> match case</label>
+      <label title="No object or time limits; shows progress and can be cancelled (not for 'files at this ref' and 'commit messages')"><input type="checkbox" name="bg" value="1" {% if bg %}checked{% endif %}> run in the background</label>
+    </div>
+  </form>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <p class="hint">
+    <strong>files at this ref</strong> greps the checked-out tree.
+    <strong>all file contents in history</strong> greps every version of every
+    file in the dump, including ones deleted or overwritten later (old
+    passwords, removed configs); hits open in a pane on the right.
+    <strong>commit messages</strong> searches messages and authors.
+    <strong>git metadata</strong> searches what is not file content: <code>.git/config</code>,
+    hooks, logs, and every commit and tag message and author in the dump,
+    including ones no branch reaches. <strong>high-entropy strings</strong> lists long
+    random-looking strings (an optional query narrows them).
+    Lines of any length are searched; a long line is shown as a window around the match.
+    For known credential patterns use <a href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}">Secrets scan</a>.
+  </p>
+</div>
+
+{% if hits is not none %}
+<div class="{{ 'split' if paned else '' }}" {% if paned %}data-split{% endif %}>
+  <div class="panel split-list">
+    <p>{{ hits|length }} match{{ 'es' if hits|length != 1 }}{% if scanned %} in {{ scanned }} blob(s){% endif %}.
+       {% if truncated %}<span class="chip chip-warn">limit reached, showing the first results</span>{% endif %}
+       <span class="filters inline-filters">{{ dedupe_toggle(repeats, 'ul.commit-list > li, ul.search-hits > li') }}</span></p>
+    {% if scope == 'history' %}
+      <ul class="commit-list">
+        {% for c in hits %}
+        <li data-dup="{{ '1' if c.dup_of_first else '0' }}">
+          <a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=c.sha) }}">{{ c.summary }}</a>
+          {% if c.dup_count > 1 %}<span class="chip" title="the same text appears in {{ c.dup_count }} places">&times;{{ c.dup_count }}</span>{% endif %}
+
+          <span class="commit-meta"><code>{{ c.short }}</code> &middot; {{ c.author }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% elif paned %}
+      <ul class="search-hits">
+        {% for h in hits %}
+        {% set loc = h.locations[0] if h.locations else none %}
+        <li data-dup="{{ '1' if h.dup_of_first else '0' }}">
+          {{ where_link(h, dump, loc, h.path or none) }}
+          {% if h.source != 'blob' %}{% elif loc %}<span class="muted">@ {{ loc[0][:8] }}</span>{% else %}<span class="muted">(unreferenced)</span>{% endif %}
+          {% if h.dup_count > 1 %}<span class="chip" title="the same text appears in {{ h.dup_count }} places">&times;{{ h.dup_count }}</span>{% endif %}
+          <pre class="snippet">{{ h.line }}</pre>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <ul class="search-hits">
+        {% for h in hits %}
+        <li data-dup="{{ '1' if h.dup_of_first else '0' }}">
+          <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=ref, subpath=h.path, line=h.line_no) }}#L{{ h.line_no }}">{{ h.path }}</a>:{{ h.line_no }}
+          {% if h.dup_count > 1 %}<span class="chip" title="the same text appears in {{ h.dup_count }} places">&times;{{ h.dup_count }}</span>{% endif %}
+          <pre class="snippet">{{ h.line }}</pre>
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if not hits %}<p class="empty">No matches.</p>{% endif %}
+  </div>
+  {% if paned %}<aside class="panel split-pane" id="blob-pane" aria-live="polite" hidden></aside>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

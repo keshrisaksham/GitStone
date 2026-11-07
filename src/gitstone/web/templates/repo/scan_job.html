@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Secrets scan' if job.kind == 'secrets' else 'Search' }} (background){% endblock %}
+{% set active = 'secrets' if job.kind == 'secrets' else 'search' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>{{ 'Secrets scan' if job.kind == 'secrets' else 'Search' }} <span class="muted">in the background</span></h1>
+  {% if job.state in ('queued', 'running') %}
+  <div data-scan-status="{{ url_for('tools.scan_job_status', dump_id=dump.id, job_id=job.id) }}">
+    <p><strong data-scan-phase>{{ job.phase }}</strong> <span class="muted" data-scan-count></span></p>
+    <progress data-scan-bar max="100" value="0" aria-label="Scan progress"></progress>
+    <p class="hint">No object or time limits apply here. This page updates by itself and shows the results when the scan finishes; you can leave it and come back.</p>
+    <form method="post" action="{{ url_for('tools.scan_job_cancel', dump_id=dump.id, job_id=job.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button type="submit" class="tool-button">Cancel</button>
+    </form>
+  </div>
+  {% elif job.state == 'failed' %}
+    <p class="error">The scan failed: {{ job.error }}</p>
+  {% else %}
+    <p class="empty">The scan was cancelled.</p>
+  {% endif %}
+  <p><a class="btn-link" href="{{ url_for('tools.secrets_page' if job.kind == 'secrets' else 'tools.search_page', dump_id=dump.id, **({} if job.kind == 'secrets' else {'ref': job.params.ref})) }}">&larr; Back to the form</a></p>
+</div>
+{% endblock %}

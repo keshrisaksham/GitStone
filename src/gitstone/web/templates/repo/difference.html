@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "partials/diff.html" import file_list %}
+{% block title %}Difference{% endblock %}
+{% set active = 'difference' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Difference</h1>
+  <p class="hint">
+    What was <code>git add</code>-ed but <strong>never committed</strong> &mdash; the
+    staged index against HEAD, as <code>git diff --cached</code> would print it.
+    Developers leave work-in-progress here (a changed password, a new config,
+    a debug route), and because the blobs are in the object store the
+    dump still has them even though no commit or branch does.
+  </p>
+</div>
+
+{% for note in diff.notes %}<p class="warn-note">&#9888; {{ note }}</p>{% endfor %}
+
+{% if not diff.files %}
+<div class="panel"><p class="empty">Nothing is staged: the index matches HEAD{% if diff.notes %} (see the note above){% endif %}.</p></div>
+{% else %}
+<div class="panel">
+  <h2 class="first">
+    {{ diff.files|length }} staged file{{ 's' if diff.files|length != 1 }}
+    <span class="muted">({{ counts.added }} new &middot; {{ counts.modified }} changed &middot; {{ counts.deleted }} removed{% if counts.mode %} &middot; {{ counts.mode }} mode{% endif %})</span>
+    <span class="diffstat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span>
+  </h2>
+  {% if diff.truncated %}<p class="hint">Diff truncated; there are a lot of staged changes.</p>{% endif %}
+</div>
+
+{% if leaks %}
+<div class="panel">
+  <h2 class="first">Credentials on staged lines <span class="muted">({{ leaks|length }})</span></h2>
+  <p class="hint">Added lines in these staged changes that look like secrets. A <em>was</em> value is the committed line the edit replaced.</p>
+  <div class="table-wrap">
+  <table class="findings">
+    <thead><tr><th>Severity</th><th>Pattern</th><th>Added line</th><th>Where</th></tr></thead>
+    <tbody>
+      {% for h in leaks %}
+      <tr data-sev="{{ h.severity }}">
+        <td><span class="sev sev-{{ h.severity }}">{{ h.severity }}</span></td>
+        <td>{{ h.pattern }}</td>
+        <td><pre class="snippet">{{ h.line }}</pre>{% if h.replaces %}<span class="muted">was:</span> <code>{{ h.replaces }}</code>{% endif %}</td>
+        <td class="where">
+          {% if h.sha %}<a href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=h.sha, line=h.line_no, name=h.path) }}">{{ h.path }}:{{ h.line_no }}</a>
+          {% else %}{{ h.path }}:{{ h.line_no }}{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  {{ file_list(file_diffs, dump, none, true) }}
+</div>
+{% endif %}
+{% endblock %}

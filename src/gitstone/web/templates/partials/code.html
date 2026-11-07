@@ -1,0 +1,11 @@
+{# A syntax-highlighted listing. `lines` are already-escaped Markup (see
+   gitstone.viewer.highlight); each row is an anchor target, #L12. #}
+{% macro code_table(lines, highlight_line=none, language=none) %}
+<div class="code-wrap{{ ' lang-' ~ (language | lower | replace(' ', '-') | replace('+', 'p')) if language }}">
+<table class="blob" data-code>
+  {% for line in lines %}
+  <tr id="L{{ loop.index }}"{% if highlight_line == loop.index %} class="hl-line"{% endif %}><td class="ln"><a href="#L{{ loop.index }}">{{ loop.index }}</a></td><td class="code"><pre>{{ line }}</pre></td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endmacro %}

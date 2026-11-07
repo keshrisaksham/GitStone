@@ -20,6 +20,7 @@ dependencies = [
     "beautifulsoup4>=4.9",
     "dulwich>=0.22",
     "Flask>=2.3",
+    "Pygments>=2.10",
     "PySocks>=1.7",
     "requests>=2.25",
     "requests-pkcs12>=1.14",
@@ -44,7 +45,7 @@ version = { attr = "gitstone.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-"gitstone.web" = ["templates/*.html", "static/*"]
+"gitstone.web" = ["templates/*.html", "templates/*/*.html", "static/*/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

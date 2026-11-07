@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "partials/diff.html" import file_list %}
+{% block title %}Compare{% endblock %}
+{% set active = 'compare' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <h1>Compare versions</h1>
+  <p class="hint">
+    See what changes going from <strong>base</strong> to <strong>head</strong>. A version is a
+    branch, tag, or commit: open the list to browse them, or type a name, a commit
+    message, or a sha (the short one from the Commits page is fine).
+  </p>
+  <form method="get" class="compare-form" data-versions-url="{{ url_for('tools.versions_json', dump_id=dump.id) }}">
+    <datalist id="refs-list">
+      {% for r in refs or [] %}<option value="{{ r.name }}">{{ r.kind }}</option>{% endfor %}
+    </datalist>
+    {% for key, title, hint in (('base', 'Base', 'compare from'), ('head', 'Head', 'compare to')) %}
+    {% set side = sides[key] %}
+    <div class="version-field" data-version-field>
+      <label for="ver-{{ key }}">{{ title }} <span class="muted">&middot; {{ hint }}</span></label>
+      <div class="combo">
+        <input type="text" id="ver-{{ key }}" name="{{ key }}" value="{{ side.ref }}" list="refs-list" required
+               placeholder="Choose a version&hellip;" autocomplete="off" spellcheck="false"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ver-list-{{ key }}"
+               data-version-input {{ 'aria-invalid="true"' | safe if side.error }}>
+        <button type="button" class="combo-toggle" tabindex="-1" aria-label="Show {{ key }} versions" data-version-toggle>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+        </button>
+        <ul class="combo-list" id="ver-list-{{ key }}" role="listbox" aria-label="{{ title }} versions" hidden></ul>
+      </div>
+      <p class="combo-picked {{ 'error' if side.error else 'muted' }}" data-version-picked aria-live="polite">
+        {% if side.error %}{{ side.error }}
+        {% elif side.info %}<code>{{ side.info.short }}</code> {{ side.info.summary }} <span class="muted">&middot; {{ side.info.author_time | fmt_time }}</span>{% endif %}
+      </p>
+    </div>
+    {% if loop.first %}
+    <a class="swap-button" href="{{ swap_url }}" data-compare-swap title="Swap base and head" aria-label="Swap base and head">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13"/></svg>
+    </a>
+    {% endif %}
+    {% endfor %}
+    <div class="compare-actions"><button type="submit" class="primary">Compare</button></div>
+  </form>
+</div>
+{% if diff is not none %}
+<div class="panel">
+  <h2 class="first">
+    <code>{{ base.short }}</code> &hellip; <code>{{ head.short }}</code>
+    &middot; {{ diff.files|length }} file{{ 's' if diff.files|length != 1 }} changed
+    <span class="diffstat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span>
+  </h2>
+  {% for note in diff.notes %}<p class="warn-note">&#9888; {{ note }}</p>{% endfor %}
+  {% if diff.truncated %}<p class="hint">Diff truncated; these versions differ a lot.</p>{% endif %}
+  {% if not diff.files and not diff.notes %}<p class="empty">These two versions have identical content.</p>{% endif %}
+  {{ file_list(file_diffs, dump, head.sha) }}
+</div>
+{% endif %}
+{% endblock %}

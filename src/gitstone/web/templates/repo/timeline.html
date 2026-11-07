@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% from "partials/dedupe.html" import dedupe_toggle %}
+{% block title %}Timeline{% endblock %}
+{% set active = 'timeline' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Timeline</h1>
+  <p class="hint">
+    Every file a commit added, changed, or removed, across <em>every</em> branch
+    and tag in this dump -- newest first. Built for the question a one-commit-
+    at-a-time history makes tedious to answer: what changed recently, and what
+    used to be here that isn't anymore -- a removed <code>.env</code>, a debug
+    route "cleaned up" later, a backup script nobody <code>.gitignore</code>'d.
+    For known credential patterns, <a href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}">Secrets scan</a> is faster.
+  </p>
+  <form method="get" class="search-form">
+    <input type="hidden" name="run" value="1">
+    <button type="submit" class="primary">{{ 'Rebuild timeline' if run else 'Build timeline' }}</button>
+    {% if run and result %}<span class="filters inline-filters">{{ dedupe_toggle(repeats, '.gone-now tbody tr, .timeline-events tbody tr') }}</span>{% endif %}
+  </form>
+</div>
+
+{% if run and result %}
+<div class="panel">
+  <h2 class="first">Referenced but missing <span class="muted">({{ missing | length }})</span></h2>
+  <p class="hint">
+    Files that a Dockerfile, compose file, script or CI config points at but that are
+    <strong>not in this repository</strong>. A file kept out of git on purpose usually holds the
+    real secrets and still exists on the server &mdash; worth asking for next
+    (a file-read bug, a backup copy, another virtual host).
+  </p>
+  {% if missing %}
+  <div class="table-wrap">
+  <table class="findings missing-refs">
+    <thead><tr><th>Missing file</th><th>Referenced by</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in missing %}
+      {% set kind, sensitive = file_kind(r.path) %}
+      <tr class="{{ 'is-generated' if r.generated }}">
+        <td>
+          <span class="ft ft-{{ kind }}"></span> <code>{{ r.path }}</code>
+          {% if r.sensitive %}<span class="chip chip-danger" title="This file name usually holds credentials or data">sensitive</span>{% endif %}
+          {% if r.generated %}<span class="chip" title="Looks like build output, expected to be absent">build output</span>{% endif %}
+        </td>
+        <td>
+          <span class="muted">{{ r.kind }}</span>
+          <code>{{ r.directive }}</code><br>
+          <a data-pane href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=r.ref_sha, line=r.line_no, name=r.referenced_by) }}">{{ r.referenced_by }}:{{ r.line_no }}</a>
+        </td>
+        <td>
+          {% if r.status == 'never committed' %}
+            <span class="chip chip-warn" title="No commit, branch or staged change ever contained this file">never in this repository</span>
+          {% else %}
+            <span class="chip">deleted from the tree</span>
+            {% if r.commit_sha %}<a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=r.commit_sha) }}">{{ r.commit_sha[:8] }}</a>{% endif %}
+            {% if r.sha %}<a data-pane href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=r.sha, name=r.path) }}">last content</a>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <p class="empty">Every file referenced by the Dockerfiles, compose files, scripts and CI configs here is in the repository.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2 class="first">Gone now <span class="muted">({{ deleted | length }})</span></h2>
+  <p class="hint">Files seen at some point in the history that are not in the current default branch's tree.</p>
+  {% if deleted %}
+  <div class="table-wrap">
+  <table class="findings gone-now">
+    <thead><tr><th>Path</th><th>Removed in</th></tr></thead>
+    <tbody>
+      {% for e in deleted %}
+      {% set kind, sensitive = file_kind(e.path) %}
+      <tr data-dup="{{ '1' if e.dup_of_first else '0' }}">
+        <td>
+          <span class="ft ft-{{ kind }}"></span>
+          <a data-pane href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=e.sha, name=e.path) }}">{{ e.path }}</a>
+          {% if e.dup_count > 1 %}<span class="chip" title="the same file content was removed at {{ e.dup_count }} places">&times;{{ e.dup_count }}</span>{% endif %}
+
+          {% if sensitive %}<span class="chip chip-danger" title="This file name usually holds credentials or data">sensitive</span>{% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=e.commit_sha) }}">{{ e.commit_short }}</a>
+          <span class="muted">{{ e.commit_summary }} &middot; {{ e.commit_time | fmt_time }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <p class="empty">Nothing found that isn't still around (or the scan didn't reach far enough -- see below).</p>
+  {% endif %}
+</div>
+
+<div class="split" data-split>
+  <div class="panel split-list">
+    <h2 class="first">All changes <span class="muted">({{ result.events | length }} from {{ result.commits_walked }} commit{{ 's' if result.commits_walked != 1 }})</span></h2>
+    {% if result.truncated %}<p class="hint">Limit reached; older history may be missing from this list.</p>{% endif %}
+    {% if result.events %}
+    <div class="filters" data-severity-filter>
+      <label><input type="checkbox" value="added" checked> added</label>
+      <label><input type="checkbox" value="modified" checked> modified</label>
+      <label><input type="checkbox" value="deleted" checked> deleted</label>
+      <label><input type="checkbox" value="unknown" checked> unknown <span class="muted">(parent commit missing)</span></label>
+      <input type="search" class="tree-filter" data-filter-rows=".timeline-events tbody tr" placeholder="Filter by path or commit message" aria-label="Filter changes">
+    </div>
+    <div class="table-wrap">
+    <table class="findings timeline-events">
+      <thead><tr><th>Status</th><th>Path</th><th>Commit</th></tr></thead>
+      <tbody>
+        {% for e in result.events %}
+        {% set kind, sensitive = file_kind(e.path) %}
+        {% set labels = {'added': 'A', 'modified': 'M', 'deleted': 'D', 'unknown': '?'} %}
+        <tr data-sev="{{ e.status }}" data-dup="{{ '1' if e.dup_of_first else '0' }}" data-name="{{ (e.path ~ ' ' ~ e.commit_summary) | lower }}">
+          <td><span class="fstatus fstatus-{{ e.status }}" title="{{ e.note or e.status }}">{{ labels[e.status] }}</span></td>
+          <td>
+            <span class="ft ft-{{ kind }}"></span>
+            <a data-pane href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=e.sha, name=e.path, commit=e.commit_sha if e.status != 'deleted' else none) }}">{{ e.path }}</a>
+            {% if e.dup_count > 1 %}<span class="chip" title="the this same change to the same content appears in {{ e.dup_count }} places">&times;{{ e.dup_count }}</span>{% endif %}
+            {% if sensitive %}<span class="chip chip-danger" title="This file name usually holds credentials or data">sensitive</span>{% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=e.commit_sha) }}">{{ e.commit_short }}</a>
+            <span class="muted">{{ e.commit_summary }} &middot; {{ e.commit_time | fmt_time }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="empty filter-empty" hidden>No changes match these filters.</p>
+    {% else %}
+      <p class="empty">No changes found.</p>
+    {% endif %}
+  </div>
+  <aside class="panel split-pane" id="blob-pane" aria-live="polite" hidden></aside>
+</div>
+{% endif %}
+{% endblock %}

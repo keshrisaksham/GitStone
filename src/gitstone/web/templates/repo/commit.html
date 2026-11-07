@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "partials/diff.html" import file_list %}
+{% block title %}Commit {{ commit.short }}{% endblock %}
+{% set active = 'commits' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <h1>{{ commit.summary }}</h1>
+  <pre class="commit-message">{{ commit.message }}</pre>
+  <p class="commit-meta">
+    <code>{{ commit.sha }}</code> &middot; {{ commit.author }} &middot; {{ commit.author_time | fmt_time }}
+    {% if commit.parents %}
+      &middot; parent{{ 's' if commit.parents|length > 1 }}:
+      {% for p in commit.parents %}<a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=p) }}"><code>{{ p[:10] }}</code></a>{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+      &middot; root commit
+    {% endif %}
+  </p>
+  <p class="actions">
+    <a class="btn-link" href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=commit.sha) }}">Browse files at this version &rarr;</a>
+    <a href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=commit.sha) }}">History from here</a>
+    {% if commit.parents %}<a href="{{ url_for('tools.compare_page', dump_id=dump.id, base=commit.parents[0], head=commit.sha) }}">Compare with parent</a>{% endif %}
+  </p>
+</div>
+
+<div class="panel">
+  <h2 class="first">{{ diff.files|length }} file{{ 's' if diff.files|length != 1 }} changed
+    <span class="diffstat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span></h2>
+  {% for note in diff.notes %}<p class="warn-note">&#9888; {{ note }}</p>{% endfor %}
+  {% if diff.unavailable and not diff.notes %}
+  <p class="warn-note">&#9888; {{ diff.unavailable }} file{{ 's' if diff.unavailable != 1 }} could not be compared because the dump is missing some objects.</p>
+  {% endif %}
+  {% if diff.truncated %}<p class="hint">Diff truncated; this commit changes a lot.</p>{% endif %}
+  {% if not diff.files and not diff.notes %}<p class="empty">No file changes.</p>{% endif %}
+  {{ file_list(file_diffs, dump, commit.sha) }}
+</div>
+{% endblock %}

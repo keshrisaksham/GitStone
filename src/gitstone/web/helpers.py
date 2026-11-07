@@ -1,5 +1,7 @@
 """Small pure helpers used by the views and templates."""
 import datetime
+import os
+import urllib.parse
 
 import flask
 from werkzeug.utils import secure_filename
@@ -50,6 +52,15 @@ def send_raw(data, filename):
     return response
 
 
+def dump_host(url):
+    """A short name for a dump, for page titles: ``dev.site.htb`` for a remote
+    target, the folder name for something imported from disk."""
+    parts = urllib.parse.urlsplit(url or "")
+    if parts.netloc:
+        return parts.netloc
+    return os.path.basename((url or "").rstrip("/\\")) or (url or "")
+
+
 def fmt_time(value):
     if not value:
         return "-"
@@ -65,3 +76,12 @@ def fmt_duration(run):
         return "-"
     seconds = (run.finished or datetime.datetime.now().timestamp()) - run.started
     return "%.1fs" % seconds
+
+
+def fmt_size(n):
+    if n is None:
+        return ""
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return ("%d %s" % (n, unit)) if unit == "B" else "%.1f %s" % (n, unit)
+        n /= 1024

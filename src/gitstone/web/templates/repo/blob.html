@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "partials/code.html" import code_table %}
+{% block title %}{{ path }} at {{ ref[:10] if is_version else ref }}{% endblock %}
+{% set active = 'code' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel viewer-card">
+  <div class="viewer-top">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <nav class="breadcrumbs">
+    <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref) }}">{{ ref[:10] if is_version else ref }}</a>
+    {% for name, crumb_path in breadcrumbs %}
+      {% if not loop.last %}
+        / <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref, subpath=crumb_path) }}">{{ name }}</a>
+      {% else %}
+        / <strong>{{ name }}</strong>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  {% if is_version %}
+  <p class="version-banner">
+    Viewing this file as of version <a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=commit.sha) }}"><code>{{ commit.short }}</code></a>
+    &mdash; {{ commit.summary }} <span class="muted">({{ commit.author_time | fmt_time }})</span>
+  </p>
+  {% endif %}
+  </div>
+
+  {% set kind, sensitive = file_kind(path) %}
+  <div class="file-bar">
+    <span class="file-info">
+      <span class="ft ft-{{ kind }}" title="{{ kind }}"></span>
+      {% if language %}<span class="chip">{{ language }}</span>{% endif %}
+      {% if sensitive %}<span class="chip chip-danger" title="This file name usually holds credentials or data">sensitive</span>{% endif %}
+      {{ size | fmt_size }} &middot; mode {{ entry.mode | fmt_mode }} &middot; sha <code>{{ entry.sha[:10] }}</code>
+    </span>
+    <span class="file-actions">
+      {% if lines is not none %}
+      <button type="button" class="tool-button" data-toggle-wrap>Wrap</button>
+      <button type="button" class="tool-button" data-copy-code>Copy</button>
+      {% endif %}
+      <a class="tool-button" href="{{ url_for('browse.raw_blob', dump_id=dump.id, ref=ref, subpath=path) }}">Raw</a>
+      <a class="tool-button" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=ref, path=path) }}">History</a>
+    </span>
+  </div>
+
+  {% if binary %}
+    <p class="empty">Binary file not shown. <a href="{{ url_for('browse.raw_blob', dump_id=dump.id, ref=ref, subpath=path) }}">Download raw</a>.</p>
+  {% elif too_big %}
+    <p class="empty">File is too large to preview ({{ size }} bytes). <a href="{{ url_for('browse.raw_blob', dump_id=dump.id, ref=ref, subpath=path) }}">Download raw</a>.</p>
+  {% else %}
+    {{ code_table(lines, highlight_line, language) }}
+  {% endif %}
+</div>
+{% endblock %}

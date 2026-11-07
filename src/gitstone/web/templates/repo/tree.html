@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Code at {{ ref }}{{ ': ' ~ path if path }}{% endblock %}
+{% set active = 'code' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <nav class="breadcrumbs">
+    <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref) }}">{{ ref }}</a>
+    {% for name, crumb_path in breadcrumbs %}
+      / <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref, subpath=crumb_path) }}">{{ name }}</a>
+    {% endfor %}
+  </nav>
+
+  <p class="commit-line">
+    latest on this ref:
+    <a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=commit.sha) }}">{{ commit.short }}</a>
+    {{ commit.summary }}
+    &middot; <a href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=ref, path=path) }}">history</a>
+  </p>
+
+  {% if entries|length > 8 %}
+  <input type="search" class="tree-filter" data-filter-rows=".tree tr" placeholder="Filter files in this directory (press /)" aria-label="Filter files">
+  {% endif %}
+  <table class="tree">
+    {% for e in entries %}
+    {% set kind, sensitive = file_kind(e.name) if e.kind == 'blob' else ('other', false) %}
+    <tr class="row-{{ e.kind }}" data-name="{{ e.name | lower }}">
+      <td class="icon"><span class="ft ft-{{ 'dir' if e.kind == 'tree' else kind if e.kind == 'blob' else 'other' }}" title="{{ e.kind if e.kind != 'blob' else kind }}"></span>{% if e.kind in ('symlink', 'submodule') %}<span class="muted">{{ e.kind }}</span>{% endif %}</td>
+      <td class="name">
+        {% if e.kind == 'tree' %}
+          <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref, subpath=e.path) }}">{{ e.name }}/</a>
+        {% elif e.kind == 'submodule' %}
+          <span class="muted">{{ e.name }} (submodule, not stored in this dump)</span>
+        {% else %}
+          <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=ref, subpath=e.path) }}">{{ e.name }}</a>{% if sensitive %} <span class="chip chip-danger" title="This file name usually holds credentials or data">sensitive</span>{% endif %}
+        {% endif %}
+      </td>
+      <td class="mode">{{ e.mode | fmt_mode }}</td>
+      <td class="size">{{ e.size | fmt_size }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not entries %}<p class="empty">This directory is empty (or everything in it is still missing from the dump).</p>{% endif %}
+</div>
+{% endblock %}

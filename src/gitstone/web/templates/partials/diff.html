@@ -1,0 +1,45 @@
+{# Per-file diffs. `file_diffs` is [(FileChange, [(css_class, line), ...])];
+   lines are escaped by Jinja. `ref` (optional) is the version to open files at. #}
+{% macro file_list(file_diffs, dump, view_ref=none, staged=false) %}
+{% set labels = {'added': 'A', 'deleted': 'D', 'modified': 'M', 'mode': 'M', 'unknown': '?'} %}
+<ul class="file-index">
+  {% for f, lines in file_diffs %}
+  <li>
+    <span class="fstatus fstatus-{{ f.status }}" title="{{ f.status }}">{{ labels[f.status] }}</span>
+    {% if f.status == 'unknown' %}<span class="ft ft-{{ file_kind(f.path)[0] }}"></span>{{ f.path }}{% else %}<a href="#file-{{ f.path | urlencode }}">{{ f.path }}</a>{% endif %}
+    {% if f.status == 'unknown' %}
+      {% if f.new_sha %}<a class="file-links" href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=view_ref, subpath=f.path) }}">view file</a>{% endif %}
+    {% else %}
+      {% if not f.available %}<span class="chip chip-warn" title="{{ f.note }}">incomplete</span>{% endif %}
+      <span class="diffstat"><span class="diff-add">+{{ f.additions }}</span> <span class="diff-del">-{{ f.deletions }}</span></span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% for f, lines in file_diffs if f.status != 'unknown' %}
+{% set kind, sensitive = file_kind(f.path) %}
+<details class="file-diff" id="file-{{ f.path | urlencode }}" open>
+  <summary>
+    <span class="fstatus fstatus-{{ f.status }}">{{ labels[f.status] }}</span>
+    <span class="ft ft-{{ kind }}" title="{{ kind }}"></span>
+    <code class="wrap">{{ f.path }}</code>
+    {% if sensitive %}<span class="chip chip-danger">sensitive</span>{% endif %}
+    <span class="diffstat"><span class="diff-add">+{{ f.additions }}</span> <span class="diff-del">-{{ f.deletions }}</span></span>
+    <span class="file-links">
+      {% if staged %}
+        {% if f.new_sha %}<a href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=f.new_sha, name=f.path) }}">view staged file</a>{% endif %}
+        {% if f.old_sha %}<a href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=f.old_sha, name=f.path) }}">view committed</a>{% endif %}
+      {% elif f.new_sha and view_ref %}
+        <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=view_ref, subpath=f.path) }}">view file</a>
+      {% elif f.old_sha %}
+        <a href="{{ url_for('browse.blob_by_sha', dump_id=dump.id, sha=f.old_sha, name=f.path) }}">view old version</a>
+      {% endif %}
+    </span>
+  </summary>
+  {% if f.note %}<p class="{{ 'warn-note' if not f.available else 'hint' }}">{{ f.note }}</p>{% endif %}
+  {% if lines %}
+  <pre class="diff code{{ ' lang-' ~ (f.language | lower | replace(' ', '-') | replace('+', 'p')) if f.language }}">{% for cls, line in lines %}<span class="{{ cls }}">{{ line }}</span>{% endfor %}</pre>
+  {% endif %}
+</details>
+{% endfor %}
+{% endmacro %}

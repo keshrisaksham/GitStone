@@ -13,3 +13,8 @@ build/
 dist/
 *.p12
 *.pfx
+dumps/
+gitstone-*.zip
+.env
+.env.*
+*.log

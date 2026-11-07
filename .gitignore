@@ -8,17 +8,37 @@ dist/
 venv/
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+.eggs/
+.tox/
+.mypy_cache/
+.ruff_cache/
 
 # GitStone output: recovered target repositories and the web UI's workspace
 # must never land in this project's own history. Bare patterns match at any
 # depth, so `dump/` also covers the folder the Docker examples bind-mount.
 dump/
+dumps/
 workspace/
 .gitstone/
 
+# A zip saved from the UI's "Download .zip" button (named gitstone-<id>.zip)
+gitstone-*.zip
+
 # In-progress atomic downloads (the dumper writes these, then renames)
 *.part
+
+# Local secrets. docker compose reads GITSTONE_TOKEN from a .env next to
+# compose.yaml; keep a .env.example in git if you want to document the keys.
+.env
+.env.*
+!.env.example
+
+# Output of a server started with nohup or redirected to a file
+nohup.out
+*.log
 
 # Client certificates (--client-cert-p12) dropped here for local testing:
 # credentials, never meant to be committed.

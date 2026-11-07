@@ -1,0 +1,11 @@
+{# The "hide duplicates" switch. `count` is how many rows are repeats of an
+   earlier row; `rows` is the CSS selector of every row the switch governs
+   (rows carry data-dup="1" when they are such a repeat -- js/filters.js does
+   the hiding). Always drawn so every results page offers it; disabled when
+   there is nothing to hide. #}
+{% macro dedupe_toggle(count, rows=none) %}
+<label class="dedupe-toggle{{ '' if count else ' is-disabled' }}" title="{{ 'Hide results that repeat an earlier one' if count else 'No repeated results here' }}">
+  <input type="checkbox" data-dedupe-filter {% if rows %}data-dedupe-rows="{{ rows }}"{% endif %} {{ '' if count else 'disabled' }}>
+  hide duplicates <span class="muted">({{ count }})</span>
+</label>
+{% endmacro %}
