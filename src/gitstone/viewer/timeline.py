@@ -93,6 +93,11 @@ def _current_paths(repo, commit):
     return paths
 
 
+# the history analysis walks the same refs and needs the same "still there?" test
+all_ref_shas = _all_ref_shas
+current_paths = _current_paths
+
+
 def duplicate_key(event):
     """Events that did the same thing to the same bytes are repeats."""
     return (event.status, event.sha) if event.sha else None

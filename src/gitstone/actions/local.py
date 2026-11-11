@@ -93,18 +93,18 @@ ACTIONS = [
         "checkout", "Rebuild working tree",
         "Sanitise .git/config, run `git checkout .` (hooks disabled), then write "
         "any file still missing straight from the object store.",
-        REPAIR, _checkout, kinds=("remote", "local"),
+        REPAIR, _checkout, kinds=("remote", "local", "cloned"),
     ),
     Action(
         "recover_index", "Recover files from index",
         "Skip git entirely: write every file listed in .git/index that is still "
         "missing, reading the blob directly. Useful when checkout fails.",
-        REPAIR, _recover_index, kinds=("remote", "local"),
+        REPAIR, _recover_index, kinds=("remote", "local", "cloned"),
     ),
     Action(
         "verify", "Verify objects",
         "Walk everything reachable from every ref and list the objects the dump "
         "is missing.",
-        REPAIR, _verify, kinds=("remote", "local"),
+        REPAIR, _verify, kinds=("remote", "local", "cloned"),
     ),
 ]

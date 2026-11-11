@@ -92,7 +92,7 @@ class Runner:
                 log.warn("error: unexpected failure\n%s", traceback.format_exc())
                 exit_code, status = 1, "failed"
 
-            if action.network:
+            if action.network and action.dump_summary:
                 print_summary(summarize(dump.url, dump.repo_dir, exit_code, stats,
                                         time.time() - started), log)
 

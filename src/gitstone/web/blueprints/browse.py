@@ -11,6 +11,7 @@ import os
 import dulwich.objects
 import flask
 
+from ...analysis import changes
 from ...viewer import history, reader
 from .. import helpers
 from .common import blob_context, ref_picker, ref_picker_default, render_diff, with_repo
@@ -140,10 +141,14 @@ def load_commit(repo, sha):
 def commit_page(dump, repo, sha):
     commit = load_commit(repo, sha)
     diff = reader.commit_diff(repo, commit)
+    try:
+        summary = changes.summarize_diff(repo, diff)
+    except Exception:  # the summary is a bonus; never let it take the diff page down
+        summary = None
     ctx = ref_picker_default(repo, dump)
     return flask.render_template(
         "repo/commit.html", dump=dump, commit=reader.commit_info(commit), diff=diff,
-        file_diffs=render_diff(diff),
+        file_diffs=render_diff(diff), summary=summary,
         **ctx,
     )
 

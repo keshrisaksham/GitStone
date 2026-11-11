@@ -40,7 +40,8 @@
       <button type="button" class="tool-button" data-copy-code>Copy</button>
       {% endif %}
       <a class="tool-button" href="{{ url_for('browse.raw_blob', dump_id=dump.id, ref=ref, subpath=path) }}">Raw</a>
-      <a class="tool-button" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=ref, path=path) }}">History</a>
+      <a class="tool-button" href="{{ url_for('history.file_page', dump_id=dump.id, ref=ref, subpath=path) }}">History</a>
+      <a class="tool-button" href="{{ url_for('history.blame_page', dump_id=dump.id, ref=ref, subpath=path) }}">Blame</a>
     </span>
   </div>
 

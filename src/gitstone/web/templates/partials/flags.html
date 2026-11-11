@@ -1,0 +1,19 @@
+{# Risk flags as small coloured chips; each carries its explanation as a tooltip. #}
+{% macro flag_chips(flags, limit=4) %}
+{% for f in flags[:limit] %}<span class="flag flag-{{ f.level }}" title="{{ f.text }}">{{ f.code }}</span> {% endfor %}
+{% if flags|length > limit %}<span class="flag flag-info" title="{% for f in flags[limit:] %}{{ f.text }}{{ '; ' if not loop.last }}{% endfor %}">+{{ flags|length - limit }}</span>{% endif %}
+{% endmacro %}
+
+{% macro bar_chart(chart, caption) %}
+{% if chart %}
+<svg class="chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="{{ caption }}">
+  <line class="chart-axis" x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ chart.base }}" y2="{{ chart.base }}"/>
+  <text class="chart-tick" x="{{ chart.left - 6 }}" y="{{ chart.top_y + 9 }}" text-anchor="end">{{ chart.top_value }}</text>
+  <text class="chart-tick" x="{{ chart.left - 6 }}" y="{{ chart.base }}" text-anchor="end">0</text>
+  {% for b in chart.bars %}
+  <rect class="chart-bar" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="2"><title>{{ b.label }}: {{ b.value }} commit{{ 's' if b.value != 1 }}</title></rect>
+  {% if b.named %}<text class="chart-label" x="{{ b.cx }}" y="{{ chart.label_y }}" text-anchor="middle">{{ b.label }}</text>{% endif %}
+  {% endfor %}
+</svg>
+{% endif %}
+{% endmacro %}

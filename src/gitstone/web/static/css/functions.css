@@ -1,0 +1,72 @@
+/* ---- New analysis: method chooser (pure CSS; the radios come first so ~ can reach what follows) ---- */
+.methods { position: relative; }
+.method-radio { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.methods { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 18px; }
+.method-cards { grid-column: 1; display: grid; grid-template-columns: 1fr; gap: 12px; position: sticky; top: calc(var(--topbar-h) + 16px); }
+.method-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; cursor: pointer;
+  background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-md);
+  transition: border-color .12s, background .12s;
+}
+.method-card:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.method-icon { width: 26px; height: 26px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.method-title { font-weight: 700; color: var(--text); font-size: 15px; }
+.method-desc { color: var(--text-muted); font-size: 13px; line-height: 1.45; }
+.method-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.method-panel { display: none; }
+.method-panels { grid-column: 2; border-left: 1px solid var(--border); padding-left: 32px; min-width: 0; }
+@media (max-width: 1000px) {
+  .methods { display: block; }
+  .method-cards { position: static; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 18px 0; }
+  .method-panels { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 20px; }
+}
+#m-web:checked ~ .method-cards label[for="m-web"],
+#m-clone:checked ~ .method-cards label[for="m-clone"],
+#m-disk:checked ~ .method-cards label[for="m-disk"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+#m-web:focus-visible ~ .method-cards label[for="m-web"],
+#m-clone:focus-visible ~ .method-cards label[for="m-clone"],
+#m-disk:focus-visible ~ .method-cards label[for="m-disk"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+#m-web:checked ~ .method-panels .method-panel[data-method="web"],
+#m-clone:checked ~ .method-panels .method-panel[data-method="clone"],
+#m-disk:checked ~ .method-panels .method-panel[data-method="disk"] { display: block; }
+.form small { color: var(--text-muted); font-weight: 400; line-height: 1.5; }
+.form small code { font-size: 12px; }
+.next-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.next-steps li { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13px; }
+.next-steps li span { color: var(--text-muted); }
+
+/* ---- Help page: a search/filter rail on the left, sections of rows on the right ---- */
+.side-link[hidden], .fn-section[hidden], .fn-row[hidden] { display: none; }
+button.side-link { font: inherit; background: none; border: 0; cursor: pointer; text-align: left; width: 100%; }
+.side-filter.is-on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.side-count { margin-left: auto; font-size: 11px; color: var(--text-muted); background: var(--bg-hover); border-radius: 999px; padding: 0 8px; }
+.kind-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.kind-dot-remote { background: var(--accent); } .kind-dot-cloned { background: var(--add); } .kind-dot-local { background: var(--warn); }
+.fn-legend { font-size: 12.5px; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.fn-count { font-weight: 500; font-size: 13px; }
+.fn-list { margin-top: 10px; }
+.fn-row { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 8px 32px; padding: 16px 0; border-top: 1px solid var(--border); }
+.fn-row:first-child { border-top: 0; }
+.fn-side { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.fn-title { font-weight: 700; color: var(--text); font-size: 14.5px; }
+.fn-id { font-size: 11.5px; color: var(--text-muted); background: var(--bg-hover); padding: 1px 7px; border-radius: 6px; }
+.fn-summary { margin: 0 0 6px; color: var(--text); font-size: 13.5px; line-height: 1.6; }
+.fn-where { margin: 0; color: var(--text-muted); font-size: 12.5px; }
+.fn-main { min-width: 0; }
+.fn-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.kind-badge, .net-badge { font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+.kind-remote { background: var(--accent-soft); color: var(--accent); }
+.kind-cloned { background: var(--add-bg); color: var(--add); }
+.kind-local { background: var(--warn-bg); color: var(--warn); }
+.net-yes { background: var(--del-bg); color: var(--del); }
+.net-no { background: var(--bg-hover); color: var(--text-muted); }
+.fn-options { font-size: 12.5px; }
+.fn-options > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.fn-opt-grid { margin: 10px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px 24px; }
+.fn-opt dt { font-weight: 600; color: var(--text); }
+.fn-opt dd { margin: 2px 0 0; color: var(--text-muted); }
+@media (max-width: 800px) { .fn-row { grid-template-columns: minmax(0, 1fr); } }
+.pipeline { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 0; margin: 14px 0 0; counter-reset: none; }
+.pipeline li { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border-radius: 999px; background: var(--bg-raised); border: 1px solid var(--border); font-size: 13px; font-weight: 500; }
+.pipeline li:not(:last-child)::after { content: "\2192"; color: var(--text-muted); margin-left: 6px; }
+.pipeline-n { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 700; }

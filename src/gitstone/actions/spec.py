@@ -80,8 +80,9 @@ class Action:
     group: str
     run: Callable[[RunContext, dict], int]  # returns an exit code, 0 = success
     params: tuple = ()
-    kinds: tuple = ("remote",)  # which dumps it applies to: "remote" and/or "local"
+    kinds: tuple = ("remote",)  # which dumps it applies to: "remote", "local" and/or "cloned"
     network: bool = False  # does it talk to the target?
+    dump_summary: bool = True  # print the dumper's closing counts line after a networked run
 
     def parse(self, raw: Mapping) -> dict:
         """Validate submitted values (strings) against the declared params."""

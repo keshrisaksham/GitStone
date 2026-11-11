@@ -8,7 +8,7 @@ from werkzeug.exceptions import HTTPException
 from .. import actions
 from ..viewer import highlight, reader
 from . import helpers, security
-from .blueprints import browse, tools, ui
+from .blueprints import browse, history, tools, ui
 from .runner import Runner
 from .scans import ScanStore
 from .store import Store
@@ -42,12 +42,14 @@ def create_app(workspace, token=None, import_roots=None, cookie_name="gitstone_s
     app.jinja_env.filters["fmt_duration"] = helpers.fmt_duration
     app.jinja_env.filters["fmt_size"] = helpers.fmt_size
     app.jinja_env.filters["dump_host"] = helpers.dump_host
+    app.jinja_env.filters["kind_label"] = helpers.kind_label
     app.jinja_env.globals["auth_enabled"] = token is not None
     app.jinja_env.globals["file_kind"] = highlight.file_kind
 
     app.register_blueprint(ui.bp)
     app.register_blueprint(browse.bp)
     app.register_blueprint(tools.bp)
+    app.register_blueprint(history.bp)
 
     @app.errorhandler(reader.NotFound)
     def not_found(e):

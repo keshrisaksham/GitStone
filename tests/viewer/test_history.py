@@ -35,3 +35,19 @@ def test_staged_diff_is_the_index_against_head(repo, opened):
 
 def test_staged_diff_is_empty_when_nothing_is_staged(repo, opened):
     assert history.staged_diff(opened).files == []
+
+
+def test_a_missing_index_file_means_no_index_not_an_empty_one(repo):
+    """dulwich opens a missing index as empty, which would read as everything
+    committed having been staged for deletion."""
+    import os
+    from gitstone.viewer import reader
+    os.remove(repo / ".git" / "index")
+    r = reader.open_repo(str(repo))
+    try:
+        assert history.index_entries(r) is None
+        assert history.index_changes(r) == []
+        diff = history.staged_diff(r)
+    finally:
+        r.close()
+    assert diff.files == [] and any("no readable .git/index" in n for n in diff.notes)

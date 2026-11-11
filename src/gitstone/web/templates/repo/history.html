@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "partials/flags.html" import flag_chips, bar_chart %}
+{% block title %}History{% endblock %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+{% set ref = current_ref if current_ref is defined and current_ref else 'HEAD' %}
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h1>History analysis</h1>
+      <p class="hint">What changed across <em>every</em> branch and tag: who made the
+        changes, when, which files keep changing, and which commits deserve a closer
+        look. Pair it with <a href="{{ url_for('history.pickaxe_page', dump_id=dump.id) }}">Pickaxe</a>
+        to find when a piece of text appeared or vanished, and
+        <a href="{{ url_for('history.lifecycle_page', dump_id=dump.id) }}">Secret lifecycle</a>
+        to see which credentials were committed and later removed.</p>
+    </div>
+    {% if report %}
+    <p class="actions">
+      <a href="{{ url_for('history.export', dump_id=dump.id, fmt='json') }}">Export JSON</a>
+      <a href="{{ url_for('history.export', dump_id=dump.id, fmt='csv') }}">Export CSV</a>
+    </p>
+    {% endif %}
+  </div>
+  {% if not size %}
+    <p class="empty">No commits could be read from this dump yet.</p>
+  {% elif not report %}
+    <p class="hint">This history has more than {{ size - 1 }} commits, so it is analysed on request.</p>
+    <form method="get" class="search-form"><input type="hidden" name="run" value="1"><button type="submit" class="primary">Analyze history</button></form>
+  {% elif not auto %}
+    <form method="get" class="search-form"><input type="hidden" name="run" value="1"><button type="submit" class="primary">Re-run analysis</button></form>
+  {% endif %}
+  {% if report and report.truncated %}
+    <p class="warn-note">&#9888; Only the {{ report.walked }} newest commits were analysed (a size or time limit was reached); older history is not included below.</p>
+  {% endif %}
+</div>
+
+{% if report and report.commits %}
+<div class="panel">
+  <dl class="stats">
+    <div><dt>Commits analysed</dt><dd>{{ report.walked }}</dd></div>
+    <div><dt>Authors
+      <details class="dl-menu">
+        <summary title="Show or download the list of authors" aria-label="Show or download the list of authors">&darr;</summary>
+        <div class="dl-menu-list">
+          <a href="#contributors">Show contributors</a>
+          <a href="{{ url_for('history.authors_export', dump_id=dump.id, fmt='txt', kind='names') }}">Names (.txt)</a>
+          <a href="{{ url_for('history.authors_export', dump_id=dump.id, fmt='txt', kind='usernames') }}">Usernames (.txt)</a>
+          <a href="{{ url_for('history.authors_export', dump_id=dump.id, fmt='txt', kind='emails') }}">E-mails (.txt)</a>
+          <a href="{{ url_for('history.authors_export', dump_id=dump.id, fmt='csv') }}">Everything (.csv)</a>
+        </div>
+      </details></dt><dd>{{ report.authors | length }}</dd></div>
+    <div><dt>Files touched</dt><dd>{{ report.files_touched }}</dd></div>
+    <div><dt>Merges</dt><dd>{{ report.merges }}</dd></div>
+    <div><dt>Branches / tags</dt><dd>{{ report.refs.get('branch', 0) + report.refs.get('remote', 0) }} / {{ report.refs.get('tag', 0) }}</dd></div>
+    <div><dt>Needs a look</dt><dd class="{{ 'stat-del' if report.risky }}">{{ report.risky | length }}</dd></div>
+  </dl>
+  <p class="muted">First commit {{ report.first_time | fmt_time }} &middot; latest {{ report.last_time | fmt_time }}</p>
+</div>
+
+<div class="panel">
+  <h2 class="first">Activity</h2>
+  <div class="chart-row">
+    <figure class="chart-figure chart-wide">
+      <figcaption>Commits per month</figcaption>
+      {{ bar_chart(chart, 'Commits per month') }}
+    </figure>
+    <figure class="chart-figure">
+      <figcaption>By weekday (UTC)</figcaption>
+      {{ bar_chart(weekday_chart, 'Commits by weekday') }}
+    </figure>
+  </div>
+  <details class="advanced"><summary>Table view</summary>
+    <table class="list compact"><thead><tr><th>Month</th><th>Commits</th></tr></thead>
+      <tbody>{% for m, n in report.months %}<tr><td>{{ m }}</td><td>{{ n }}</td></tr>{% endfor %}</tbody></table>
+  </details>
+</div>
+
+<div class="panel" id="contributors">
+  <h2 class="first">Contributors</h2>
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Author</th><th>Commits</th><th>Share</th><th>Files changed</th><th>First</th><th>Last</th></tr></thead>
+    <tbody>
+    {% for a in report.authors[:25] %}
+      <tr>
+        <td><strong>{{ a.name }}</strong>{% for e in a.emails | sort %}<br><span class="muted">{{ e }}</span>{% endfor %}</td>
+        <td>{{ a.commits }}</td>
+        <td><progress class="share" max="{{ report.walked }}" value="{{ a.commits }}">{{ a.commits }}</progress></td>
+        <td>{{ a.files }}</td>
+        <td>{{ a.first | fmt_time }}</td><td>{{ a.last | fmt_time }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if report.authors | length > 25 %}<p class="muted">{{ report.authors | length - 25 }} more authors not shown (all are in the export).</p>{% endif %}
+</div>
+
+<div class="panel">
+  <h2 class="first">Commits that need a look <span class="muted">({{ report.risky | length }})</span></h2>
+  <p class="hint">Flagged from the shape of the commit &mdash; sensitive files added or removed, mass deletions,
+    CI or auth changes, odd dates. These are hints to read, not verdicts. Hover a flag for the reason.</p>
+  {% if report.risky %}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>Commit</th><th>Author</th><th>When</th><th>Flags</th></tr></thead>
+    <tbody>
+    {% for c in report.risky[:40] %}
+      <tr>
+        <td class="wrap"><a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=c.sha) }}">{{ c.summary }}</a><br><code>{{ c.short }}</code></td>
+        <td>{{ c.author }}</td><td>{{ c.time | fmt_time }}</td>
+        <td>{{ flag_chips(c.flags) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if report.risky | length > 40 %}<p class="muted">Showing 40 of {{ report.risky | length }}; the rest are in the export.</p>{% endif %}
+  {% else %}<p class="empty">Nothing stood out.</p>{% endif %}
+</div>
+
+<div class="panel">
+  <h2 class="first">Hotspots: most-changed files</h2>
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th>File</th><th>Changes</th><th>Authors</th><th>Last change</th><th></th></tr></thead>
+    <tbody>
+    {% for f in report.hotspots %}
+      <tr>
+        <td class="wrap">
+          <span class="ft ft-{{ file_kind(f.path)[0] }}"></span>
+          {% if f.exists_now %}<a href="{{ url_for('history.file_page', dump_id=dump.id, ref=ref, subpath=f.path) }}">{{ f.path }}</a>{% else %}{{ f.path }}{% endif %}
+        </td>
+        <td>{{ f.changes }}</td><td>{{ f.authors | length }}</td><td>{{ f.last | fmt_time }}</td>
+        <td>
+          {% if f.last_status == 'deleted' and not f.exists_now %}<span class="chip chip-warn">deleted</span>{% endif %}
+          {% for t in f.tags %}<span class="chip {{ 'chip-danger' if t == 'sensitive' }}">{{ t }}</span> {% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="first">Largest commits</h2>
+  <ul class="commit-list">
+    {% for c in report.biggest %}{% if c.files %}
+    <li><a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=c.sha) }}">{{ c.summary }}</a>
+      <span class="commit-meta"><code>{{ c.short }}</code> &middot; {{ c.author }} &middot; {{ c.time | fmt_time }} &middot;
+        {{ c.files }} files (<span class="diff-add">+{{ c.added }}</span> <span class="diff-del">-{{ c.deleted }}</span> <span class="muted">~{{ c.modified }}</span>)</span></li>
+    {% endif %}{% endfor %}
+  </ul>
+</div>
+
+{% if report.anomalies or report.rewrites %}
+<div class="panel">
+  <h2 class="first">Oddities</h2>
+  {% if report.anomalies %}
+  <h3>Identities and clocks</h3>
+  <ul class="plain">{% for a in report.anomalies %}<li>{{ a }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if report.rewrites %}
+  <h3>Traces of rewritten history (reflogs)</h3>
+  <p class="hint">Resets, amends and rebases leave a note in <code>.git/logs</code> even after the commits they replaced are gone.</p>
+  <div class="table-wrap">
+  <table class="list compact">
+    <thead><tr><th>When</th><th>Ref</th><th>Who</th><th>What</th></tr></thead>
+    <tbody>{% for t in report.rewrites %}<tr><td>{{ t.when | fmt_time }}</td><td><code>{{ t.ref }}</code></td><td>{{ t.who }}</td><td class="wrap">{{ t.message }}</td></tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

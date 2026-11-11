@@ -20,7 +20,7 @@
     {% if current_ref %}
     <span class="side-title">Browse</span>
     <a class="side-link {{ 'active' if active == 'code' }}" href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9776;</span>Code</a>
-    <a class="side-link {{ 'active' if active == 'commits' }}" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9201;</span>Commits</a>
+    <a class="side-link {{ 'active' if active == 'commits' }}" href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9719;</span>Commits</a>
     <a class="side-link {{ 'active' if active == 'refs' }}" href="{{ url_for('browse.refs_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#9095;</span>Branches &amp; tags</a>
     <a class="side-link {{ 'active' if active == 'compare' }}" href="{{ url_for('tools.compare_page', dump_id=dump.id, head=current_ref) }}"><span class="side-icon">&#8644;</span>Compare</a>
     <span class="side-title">Tools</span>
@@ -29,6 +29,10 @@
     <a class="side-link {{ 'active' if active == 'secrets' }}" href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}"><span class="side-icon">&#9888;</span>Secrets scan</a>
     <a class="side-link {{ 'active' if active == 'difference' }}" href="{{ url_for('tools.difference_page', dump_id=dump.id) }}"><span class="side-icon">&#177;</span>Difference</a>
     <a class="side-link {{ 'active' if active == 'timeline' }}" href="{{ url_for('tools.timeline_page', dump_id=dump.id) }}"><span class="side-icon">&#9636;</span>Timeline</a>
+    <span class="side-title">History analysis</span>
+    <a class="side-link {{ 'active' if active == 'history' }}" href="{{ url_for('history.overview_page', dump_id=dump.id) }}"><span class="side-icon">&#9783;</span>Overview</a>
+    <a class="side-link {{ 'active' if active == 'pickaxe' }}" href="{{ url_for('history.pickaxe_page', dump_id=dump.id) }}"><span class="side-icon">&#9874;</span>Pickaxe search</a>
+    <a class="side-link {{ 'active' if active == 'lifecycle' }}" href="{{ url_for('history.lifecycle_page', dump_id=dump.id) }}"><span class="side-icon">&#8634;</span>Secret lifecycle</a>
     <span class="side-title">Dump</span>
     <a class="side-link" href="{{ url_for('ui.dump_detail', dump_id=dump.id) }}"><span class="side-icon">&#9881;</span>Overview &amp; runs</a>
     <a class="side-link" href="{{ url_for('ui.download', dump_id=dump.id) }}"><span class="side-icon">&#8681;</span>Download .zip</a>

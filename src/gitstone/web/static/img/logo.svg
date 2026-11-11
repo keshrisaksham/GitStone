@@ -1,15 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <style>
-    .ground { fill: #64748b; }
-    .slab { fill: #7c8aa0; stroke: #4b5870; stroke-width: 1.4; stroke-linejoin: round; }
-    .mark { fill: none; stroke: #f1f5f9; stroke-width: 2.2; stroke-linecap: round; }
+    .stone { fill: #0a7d2c; fill-opacity: .16; stroke: #0a7d2c; stroke-width: 1.9; stroke-linejoin: round; }
+    .line { fill: none; stroke: #0a7d2c; stroke-width: 2.1; stroke-linecap: round; }
+    .thin { fill: none; stroke: #0a7d2c; stroke-width: 1.5; stroke-linecap: round; opacity: .65; }
     @media (prefers-color-scheme: dark) {
-      .ground { fill: #94a3b8; }
-      .slab { fill: #9aa8bd; stroke: #cbd5e1; }
-      .mark { stroke: #1e293b; }
+      .stone { fill: #39d353; stroke: #39d353; }
+      .line, .thin { stroke: #39d353; }
     }
   </style>
-  <path class="ground" d="M3.5 28h25a1.25 1.25 0 0 1 0 2.5h-25a1.25 1.25 0 0 1 0-2.5z"/>
-  <path class="slab" d="M8.5 28V14a7.5 7.5 0 0 1 15 0v14z"/>
-  <path class="mark" d="M16 10.5v9.5M12 14.5h8"/>
+  <path class="stone" d="M7 27.5V13.5a9 9 0 0 1 18 0v14z"/>
+  <path class="line" d="M16 8.5v10M11.8 13h8.4"/>
+  <path class="thin" d="M11.5 23h9"/>
+  <path class="line" d="M2.5 27.5h27"/>
+  <path class="thin" d="M4.5 27.5l.9-2.4M7.3 27.5l-.3-1.8M27.5 27.5l-.9-2.4M24.7 27.5l.3-1.8"/>
 </svg>

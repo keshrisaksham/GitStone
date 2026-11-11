@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "partials/diff.html" import file_list %}
+{% from "partials/flags.html" import flag_chips %}
 {% block title %}Commit {{ commit.short }}{% endblock %}
 {% set active = 'commits' %}
 {% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
@@ -23,6 +24,31 @@
     {% if commit.parents %}<a href="{{ url_for('tools.compare_page', dump_id=dump.id, base=commit.parents[0], head=commit.sha) }}">Compare with parent</a>{% endif %}
   </p>
 </div>
+
+{% if summary and diff.files %}
+<div class="panel">
+  <h2 class="first">What changed</h2>
+  <p class="summary-line">
+    {% if summary.added %}<span class="chip chip-add">{{ summary.added }} added</span>{% endif %}
+    {% if summary.modified %}<span class="chip">{{ summary.modified }} modified</span>{% endif %}
+    {% if summary.deleted %}<span class="chip chip-danger">{{ summary.deleted }} deleted</span>{% endif %}
+    {% if summary.renamed %}<span class="chip chip-warn">{{ summary.renamed }} renamed</span>{% endif %}
+    {% if summary.binary %}<span class="chip">{{ summary.binary }} binary</span>{% endif %}
+    <span class="diffstat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span>
+    {{ flag_chips(summary.flags, 6) }}
+  </p>
+  {% if summary.flags %}<ul class="plain flag-reasons">{% for f in summary.flags %}<li><span class="flag flag-{{ f.level }}">{{ f.code }}</span> {{ f.text }}</li>{% endfor %}</ul>{% endif %}
+  {% if summary.renames %}
+  <h3>Renamed or moved</h3>
+  <ul class="plain">{% for r in summary.renames %}<li><code>{{ r.old }}</code> &rarr; <code>{{ r.new }}</code> <span class="muted">{{ r.similarity }}% alike</span></li>{% endfor %}</ul>
+  {% endif %}
+  <div class="summary-cols">
+    {% if summary.folders %}<div><h3>Where</h3><ul class="plain">{% for name, n in summary.folders %}<li><code>{{ name }}</code> <span class="muted">{{ n }} file{{ 's' if n != 1 }}</span></li>{% endfor %}</ul></div>{% endif %}
+    {% if summary.kinds %}<div><h3>What kind</h3><ul class="plain">{% for name, n in summary.kinds %}<li><code>{{ name }}</code> <span class="muted">{{ n }}</span></li>{% endfor %}</ul></div>{% endif %}
+    {% if summary.biggest %}<div><h3>Biggest edits</h3><ul class="plain">{% for f in summary.biggest %}<li><code class="wrap">{{ f.path }}</code> <span class="diffstat"><span class="diff-add">+{{ f.additions }}</span> <span class="diff-del">-{{ f.deletions }}</span></span></li>{% endfor %}</ul></div>{% endif %}
+  </div>
+</div>
+{% endif %}
 
 <div class="panel">
   <h2 class="first">{{ diff.files|length }} file{{ 's' if diff.files|length != 1 }} changed

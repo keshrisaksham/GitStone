@@ -20,6 +20,33 @@
     }
   });
 
+  // ---- <details class="dl-menu"> closes on a click elsewhere, on Escape, or after choosing an item
+  document.addEventListener("click", function (event) {
+    document.querySelectorAll(".dl-menu[open]").forEach(function (menu) {
+      if (!menu.contains(event.target) || (event.target.closest && event.target.closest(".dl-menu-list a"))) {
+        menu.removeAttribute("open");
+      }
+    });
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      document.querySelectorAll(".dl-menu[open]").forEach(function (menu) { menu.removeAttribute("open"); });
+    }
+  });
+
+  // ---- a sticky page header (.dump-hero.sticky) tells the layout how tall it is, so the
+  // side column that sticks below it starts in the right place even when the title wraps.
+  (function initStickyHero() {
+    var hero = document.querySelector(".dump-hero.sticky");
+    if (!hero) { return; }
+    function measure() {
+      document.documentElement.style.setProperty("--hero-h", hero.offsetHeight + "px");
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    if (window.ResizeObserver) { new ResizeObserver(measure).observe(hero); }
+  })();
+
   // ---- contextual "back" link: <a data-back-link hidden> on a page you only
   // ever land on by following a link (a blob, a commit, a diff...) points back
   // at wherever that was, so there's an in-app way back besides the browser's

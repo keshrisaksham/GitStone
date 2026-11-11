@@ -376,6 +376,38 @@ def _path_id(store, tree_sha, parts):
     return sha
 
 
+def _path_entry(store, tree_sha, parts):
+    """``(mode, sha)`` of the file at ``parts`` under a tree, None if absent
+    or if it is a directory; KeyError if a tree on the way is missing"""
+    sha, entry = tree_sha, None
+    for part in parts:
+        entries = {name: (mode, s) for name, mode, s in store[sha].iteritems()}
+        entry = entries.get(part.encode())
+        if entry is None:
+            return None
+        sha = entry[1]
+    return None if entry is None or stat.S_ISDIR(entry[0]) else entry
+
+
+def file_change_at(repo, commit, path):
+    """What ``commit`` did to the single file ``path`` (against its first
+    parent) as a :class:`FileChange`, or None if it did not touch it or the
+    comparison is impossible because trees are missing from the dump."""
+    parts = split_path(path)
+    store = repo.object_store
+    try:
+        new = _path_entry(store, commit.tree, parts)
+        old = None
+        if commit.parents:
+            old = _path_entry(store, store[commit.parents[0]].tree, parts)
+    except KeyError:
+        return None
+    if new is None and old is None:
+        return None
+    change = _file_diff(store, "/".join(parts), old, new)
+    return None if change.status == "mode" and old == new else change
+
+
 def _tolerant_walk(repo, start_sha, parts, max_entries):
     """Single-start, optionally path-filtered form of :func:`iter_commits`."""
     return iter_commits(repo, [start_sha], max_entries, parts)

@@ -7,11 +7,12 @@
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -.01em; color: var(--text); white-space: nowrap; }
 .brand:hover { text-decoration: none; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); }
-.logo { width: 24px; height: 24px; }
-.logo-ground { fill: var(--logo-ground); }
-.logo-slab { fill: var(--logo-slab); stroke: var(--logo-edge); stroke-width: 1.4; stroke-linejoin: round; }
-.logo-mark { fill: none; stroke: var(--logo-mark); stroke-width: 2.2; stroke-linecap: round; }
+.brand-mark { display: grid; place-items: center; }
+.logo { width: 30px; height: 30px; overflow: visible; }
+.logo-slab { fill: var(--accent-soft); fill: color-mix(in srgb, var(--accent) 20%, transparent); stroke: var(--accent); stroke-width: 1.9; stroke-linejoin: round; }
+.logo-cross, .logo-ground { fill: none; stroke: var(--accent); stroke-width: 2.1; stroke-linecap: round; }
+.logo-text { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; opacity: .65; }
+.logo-ground { stroke-width: 1.7; }
 .topbar-actions { display: flex; align-items: center; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .topbar-actions::-webkit-scrollbar { display: none; }
 .topbar-actions a:not(.btn-link) {
@@ -37,7 +38,7 @@ html[data-theme="dark"] .theme-toggle .i-moon { display: none; }
 
 /* ---- shell: repo pages get a fixed left pane; the rest is one centred column ---- */
 .shell { display: block; }
-main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 18px; width: 100%; }
+main { max-width: 1760px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 18px; width: 100%; }
 .shell.has-sidebar main { max-width: none; margin: 0 0 0 var(--sidebar-w); width: auto; padding: 24px 28px 56px; }
 
 .sidebar {
@@ -60,12 +61,12 @@ main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; display: flex
 .side-link { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: var(--radius-md); color: var(--text); font-weight: 500; }
 .side-link:hover { background: var(--bg-hover); text-decoration: none; }
 .side-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-.side-icon { width: 18px; text-align: center; color: var(--text-muted); flex: none; }
+.side-icon { width: 18px; text-align: center; color: var(--text-muted); flex: none; font-variant-emoji: text; }
 .side-link.active .side-icon { color: var(--accent); }
 
 /* ---- panels ---- */
 .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 22px 26px; min-width: 0; }
-.panel.narrow { max-width: 660px; width: 100%; margin: 0 auto; }
+.panel.narrow { max-width: 900px; width: 100%; margin: 0 auto; }
 .panel.danger { border-color: var(--del); }
 .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .panel-head h1 { margin-bottom: 4px; }

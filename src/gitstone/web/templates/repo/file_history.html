@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}History of {{ path }}{% endblock %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <p class="nav-back"><a data-back-link hidden></a></p>
+  <h1>History of <code class="wrap">{{ path }}</code></h1>
+  <p class="actions">
+    <a class="btn-link" href="{{ url_for('history.blame_page', dump_id=dump.id, ref=ref, subpath=path) }}">Blame (who wrote each line)</a>
+    <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=ref, subpath=path) }}">View file</a>
+    <a href="{{ url_for('browse.commits_page', dump_id=dump.id, ref=ref, path=path) }}">Plain commit list</a>
+  </p>
+  {% if not revisions %}<p class="empty">No commit in this history touched that file.</p>{% endif %}
+  <ol class="timeline-list">
+  {% for r in revisions %}
+    <li>
+      <span class="fstatus fstatus-{{ r.status }}" title="{{ r.status }}">{{ {'added': 'A', 'deleted': 'D', 'modified': 'M', 'unknown': '?'}[r.status] }}</span>
+      <div>
+        <a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=r.sha) }}">{{ r.summary }}</a>
+        <span class="commit-meta"><code>{{ r.short }}</code> &middot; {{ r.author }} &middot; {{ r.time | fmt_time }}
+          {% if r.status != 'unknown' %}&middot; <span class="diff-add">+{{ r.additions }}</span> <span class="diff-del">-{{ r.deletions }}</span>{% endif %}
+          {% if r.status != 'deleted' and r.status != 'unknown' %}&middot; <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=r.sha, subpath=path) }}">file at this commit</a>{% endif %}
+        </span>
+        {% if r.note %}<span class="muted">{{ r.note }}</span>{% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ol>
+  {% if has_more %}<a class="primary-link" href="{{ url_for('history.file_page', dump_id=dump.id, ref=ref, subpath=path, skip=next_skip) }}">Older revisions &rarr;</a>{% endif %}
+</div>
+{% endblock %}

@@ -5,6 +5,14 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "src"))
 
+# --install / --uninstall must work on a fresh checkout whose dependencies are not
+# installed yet, so they are handled here, before anything imports Flask or dulwich.
+from gitstone import installer  # noqa: E402  (standard library only)
+
+status = installer.handle(sys.argv[1:])
+if status is not None:
+    sys.exit(status)
+
 from gitstone.web.server import main  # noqa: E402
 
 main()

@@ -6,10 +6,10 @@
     values = action.parse({"jobs": "4", "branches": "dev"})
     action.run(RunContext(...), values)
 """
-from . import local, remote
+from . import clone, local, remote
 from .spec import Action, Param, RunContext
 
-REGISTRY = {a.id: a for a in remote.ACTIONS + local.ACTIONS}
+REGISTRY = {a.id: a for a in remote.ACTIONS + clone.ACTIONS + local.ACTIONS}
 
 
 def get(action_id):
@@ -18,7 +18,7 @@ def get(action_id):
 
 
 def for_kind(kind):
-    """Actions applicable to a dump of this kind ("remote" or "local")."""
+    """Actions applicable to a dump of this kind ("remote", "local" or "cloned")."""
     return [a for a in REGISTRY.values() if kind in a.kinds]
 
 

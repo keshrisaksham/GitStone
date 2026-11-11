@@ -1,0 +1,159 @@
+/* ---- the Terminal look, beyond what the colour tokens carry, and the accent colours.
+   html[data-accent] is set by js/accent.js; green is the default and has no rules. ---- */
+body, input, select, textarea, button { font-family: var(--mono); font-size: 13px; }
+.panel, .method-card, .fn-section, .run-card { border-color: var(--border-strong); }
+h1::before { content: "> "; color: var(--accent); }
+.primary, .topbar-actions .btn-link { text-transform: lowercase; }
+
+.accent-picker { display: flex; align-items: center; gap: 6px; margin-left: 10px; padding: 0 4px; }
+.accent-swatch { width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex: none; }
+.accent-swatch:hover { transform: scale(1.15); }
+.accent-swatch[aria-pressed="true"] { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg-panel) inset; }
+.swatch-green { background: #39d353; }
+.swatch-amber { background: #f2b134; }
+.swatch-cyan { background: #2ee6d6; }
+.swatch-magenta { background: #ff6bd6; }
+.swatch-blue { background: #5aa2ff; }
+.swatch-red { background: #ff6b6b; }
+
+/* each accent re-tints the whole palette (surfaces, borders, text), not just the highlight */
+html[data-accent="amber"][data-theme="dark"] {
+  --bg: #090704;
+  --bg-panel: #131009;
+  --bg-raised: #1a160e;
+  --bg-hover: #231e13;
+  --border: #322a1a;
+  --border-strong: #524427;
+  --text: #e8dabf;
+  --text-muted: #9a8c6f;
+  --topbar-bg: rgba(9, 7, 4, 0.88);
+  --accent: #f2b134;
+  --accent-soft: rgba(242, 177, 52, 0.14);
+  --on-accent: #1a1200;
+}
+html[data-accent="amber"][data-theme="light"] {
+  --bg: #f0eeea;
+  --bg-panel: #fbfaf8;
+  --bg-raised: #f4f2ee;
+  --bg-hover: #eae7e0;
+  --border: #cfc9bc;
+  --border-strong: #b4aa97;
+  --text: #261f10;
+  --text-muted: #6b624f;
+  --topbar-bg: rgba(251, 250, 248, 0.9);
+  --accent: #a15c00;
+  --accent-soft: rgba(161, 92, 0, 0.11);
+  --on-accent: #ffffff;
+}
+html[data-accent="cyan"][data-theme="dark"] {
+  --bg: #040909;
+  --bg-panel: #091312;
+  --bg-raised: #0e1a1a;
+  --bg-hover: #132322;
+  --border: #1a3232;
+  --border-strong: #275251;
+  --text: #bfe8e7;
+  --text-muted: #6f9a99;
+  --topbar-bg: rgba(4, 9, 9, 0.88);
+  --accent: #2ee6d6;
+  --accent-soft: rgba(46, 230, 214, 0.14);
+  --on-accent: #001a18;
+}
+html[data-accent="cyan"][data-theme="light"] {
+  --bg: #eaf0f0;
+  --bg-panel: #f8fbfb;
+  --bg-raised: #eef4f4;
+  --bg-hover: #e0eaea;
+  --border: #bccfce;
+  --border-strong: #97b4b3;
+  --text: #102625;
+  --text-muted: #4f6b6a;
+  --topbar-bg: rgba(248, 251, 251, 0.9);
+  --accent: #007c8a;
+  --accent-soft: rgba(0, 124, 138, 0.11);
+  --on-accent: #ffffff;
+}
+html[data-accent="magenta"][data-theme="dark"] {
+  --bg: #090407;
+  --bg-panel: #130910;
+  --bg-raised: #1a0e17;
+  --bg-hover: #23131e;
+  --border: #321a2b;
+  --border-strong: #522745;
+  --text: #e8bfdc;
+  --text-muted: #9a6f8d;
+  --topbar-bg: rgba(9, 4, 7, 0.88);
+  --accent: #ff6bd6;
+  --accent-soft: rgba(255, 107, 214, 0.14);
+  --on-accent: #1c0016;
+}
+html[data-accent="magenta"][data-theme="light"] {
+  --bg: #f0eaee;
+  --bg-panel: #fbf8fa;
+  --bg-raised: #f4eef2;
+  --bg-hover: #eae0e7;
+  --border: #cfbcc9;
+  --border-strong: #b497ab;
+  --text: #26101f;
+  --text-muted: #6b4f63;
+  --topbar-bg: rgba(251, 248, 250, 0.9);
+  --accent: #b0128a;
+  --accent-soft: rgba(176, 18, 138, 0.11);
+  --on-accent: #ffffff;
+}
+html[data-accent="blue"][data-theme="dark"] {
+  --bg: #040609;
+  --bg-panel: #090d13;
+  --bg-raised: #0e131a;
+  --bg-hover: #131a23;
+  --border: #1a2532;
+  --border-strong: #273a52;
+  --text: #bfd1e8;
+  --text-muted: #6f829a;
+  --topbar-bg: rgba(4, 6, 9, 0.88);
+  --accent: #5aa2ff;
+  --accent-soft: rgba(90, 162, 255, 0.14);
+  --on-accent: #00101f;
+}
+html[data-accent="blue"][data-theme="light"] {
+  --bg: #eaedf0;
+  --bg-panel: #f8f9fb;
+  --bg-raised: #eef1f4;
+  --bg-hover: #e0e4ea;
+  --border: #bcc4cf;
+  --border-strong: #97a4b4;
+  --text: #101a26;
+  --text-muted: #4f5b6b;
+  --topbar-bg: rgba(248, 249, 251, 0.9);
+  --accent: #0b5cd5;
+  --accent-soft: rgba(11, 92, 213, 0.11);
+  --on-accent: #ffffff;
+}
+html[data-accent="red"][data-theme="dark"] {
+  --bg: #090404;
+  --bg-panel: #130a09;
+  --bg-raised: #1a0e0e;
+  --bg-hover: #231413;
+  --border: #321b1a;
+  --border-strong: #522827;
+  --text: #e8c0bf;
+  --text-muted: #9a706f;
+  --topbar-bg: rgba(9, 4, 4, 0.88);
+  --accent: #ff6b6b;
+  --accent-soft: rgba(255, 107, 107, 0.14);
+  --on-accent: #200000;
+}
+html[data-accent="red"][data-theme="light"] {
+  --bg: #f0eaea;
+  --bg-panel: #fbf8f8;
+  --bg-raised: #f4eeee;
+  --bg-hover: #eae0e0;
+  --border: #cfbdbc;
+  --border-strong: #b49897;
+  --text: #261110;
+  --text-muted: #6b504f;
+  --topbar-bg: rgba(251, 248, 248, 0.9);
+  --accent: #c0272d;
+  --accent-soft: rgba(192, 39, 45, 0.11);
+  --on-accent: #ffffff;
+}

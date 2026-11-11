@@ -7,7 +7,7 @@
 .tag, .ref-kind { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--bg-hover); color: var(--text-muted); }
 
 /* ---- forms ---- */
-.form { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
+.form { display: flex; flex-direction: column; gap: 14px; max-width: 1180px; }
 .form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-muted); font-weight: 500; }
 .form input[type=text], .form input[type=number], .form input[type=password], .form textarea,
 .search-form input[type=text], .search-form select {
@@ -18,7 +18,7 @@
   outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent;
 }
 .form textarea { font-family: var(--mono); }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
 .form-stack { display: flex; flex-direction: column; gap: 14px; padding-top: 12px; }
 .form label.checkbox { flex-direction: row; align-items: flex-start; gap: 8px; }
 .checkbox input { width: auto; margin-top: 3px; }

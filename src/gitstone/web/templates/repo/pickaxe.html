@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Pickaxe{% endblock %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Pickaxe: when did this text appear or disappear?</h1>
+  <p class="hint">Finds the commits whose changes <em>add or remove</em> a line containing your text &mdash;
+    the way to trace a token, a hostname, a function or a hard-coded password to the commit that
+    introduced it and the one that took it out. Narrow it by author, dates or folder to keep it fast.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="get" class="form pickaxe-form">
+    <label><span>Text to find</span><input type="text" name="q" value="{{ form.q }}" placeholder="password, api.internal, def login" required autofocus></label>
+    <div class="form-grid">
+      <label><span>Show</span>
+        <select name="change">
+          <option value="" {{ 'selected' if not form.change }}>added and removed</option>
+          <option value="added" {{ 'selected' if form.change == 'added' }}>only where it was added</option>
+          <option value="removed" {{ 'selected' if form.change == 'removed' }}>only where it was removed</option>
+        </select></label>
+      <label><span>Author contains</span><input type="text" name="author" value="{{ form.author }}"></label>
+      <label><span>From date</span><input type="text" name="since" value="{{ form.since }}" placeholder="2024-01-31"></label>
+      <label><span>Until date</span><input type="text" name="until" value="{{ form.until }}" placeholder="2024-12-31"></label>
+      <label><span>Only under path</span><input type="text" name="path" value="{{ form.path }}" placeholder="src/"></label>
+    </div>
+    <div class="search-options">
+      <label class="checkbox"><input type="checkbox" name="regex" value="1" {{ 'checked' if form.regex }}><span>Regular expression</span></label>
+      <label class="checkbox"><input type="checkbox" name="case" value="1" {{ 'checked' if form.case }}><span>Match case</span></label>
+      <label class="checkbox"><input type="checkbox" name="staged" value="1" {{ 'checked' if form.staged }}><span>Include staged changes <small>things <code>git add</code>-ed but not committed yet (no author or date, so skipped when those filters are set)</small></span></label>
+    </div>
+    <button type="submit" class="primary">Search history</button>
+  </form>
+</div>
+
+{% if result is not none %}
+<div class="panel">
+  <h2 class="first">{{ result.hits | length }} commit{{ 's' if result.hits | length != 1 }}{{ ' and the staged changes' if result.staged }} touch this text
+    <span class="muted">({{ result.considered }} commits examined)</span></h2>
+  {% if result.truncated %}<p class="warn-note">&#9888; Stopped early at a size, time or result limit; narrow the search for the full picture.</p>{% endif %}
+  {% if form.staged and not result.staged_searched %}<p class="hint">Staged changes were not searched: they have no author or date, so they are left out when those filters are set.</p>{% endif %}
+  {% if not result.hits and not result.staged %}<p class="empty">No commit{{ ' or staged change' if result.staged_searched }} added or removed a line matching that.</p>{% endif %}
+  <ul class="hit-list">
+  {% if result.staged %}
+    <li class="hit-staged">
+      <a class="commit-summary" href="{{ url_for('tools.difference_page', dump_id=dump.id) }}">{{ result.staged.summary }}</a>
+      <span class="commit-meta"><span class="chip chip-warn">not in any commit</span>
+        {% if result.staged.added %}&middot; <span class="diff-add">+{{ result.staged.added }} added</span>{% endif %}
+        {% if result.staged.removed %}&middot; <span class="diff-del">-{{ result.staged.removed }} removed</span>{% endif %}
+        &middot; <a href="{{ url_for('tools.difference_page', dump_id=dump.id) }}">see all staged changes</a></span>
+      {% for f in result.staged.files %}
+      <div class="hit-file"><code>{{ f.path }}</code>
+        {% for l in f.lines %}<pre class="snippet {{ 'diff-add' if l.sign == '+' else 'diff-del' }}">{{ l.sign }} {{ l.text }}</pre>{% endfor %}
+        {% if f.more %}<span class="muted">and {{ f.more }} more line{{ 's' if f.more != 1 }} in this file</span>{% endif %}
+      </div>
+      {% endfor %}
+    </li>
+  {% endif %}
+  {% for h in result.hits %}
+    <li>
+      <a class="commit-summary" href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=h.sha) }}">{{ h.summary }}</a>
+      <span class="commit-meta"><code>{{ h.short }}</code> &middot; {{ h.author }} &middot; {{ h.time | fmt_time }}
+        {% if h.added %}&middot; <span class="diff-add">+{{ h.added }} added</span>{% endif %}
+        {% if h.removed %}&middot; <span class="diff-del">-{{ h.removed }} removed</span>{% endif %}</span>
+      {% for f in h.files %}
+      <div class="hit-file"><code>{{ f.path }}</code>
+        {% for l in f.lines %}<pre class="snippet {{ 'diff-add' if l.sign == '+' else 'diff-del' }}">{{ l.sign }} {{ l.text }}</pre>{% endfor %}
+        {% if f.more %}<span class="muted">and {{ f.more }} more line{{ 's' if f.more != 1 }} in this file</span>{% endif %}
+      </div>
+      {% endfor %}
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

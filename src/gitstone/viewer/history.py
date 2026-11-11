@@ -1,5 +1,6 @@
 """Mapping blobs back to where they live in the history."""
 import dataclasses
+import os
 import stat
 
 import dulwich.objects
@@ -69,6 +70,10 @@ def head_blobs(repo, commit=None):
 def index_entries(repo):
     """``{path: (mode, blob_sha_bytes)}`` from ``.git/index``, or ``None`` if
     the dump has no readable index. Unmerged (conflicted) paths are skipped."""
+    # dulwich opens a missing index file as an empty one; an empty index would read as
+    # "everything committed was staged for deletion", which is never what a dump holds
+    if not os.path.isfile(os.path.join(repo.controldir(), "index")):
+        return None
     try:
         index = repo.open_index()
     except Exception:

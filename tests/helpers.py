@@ -189,3 +189,21 @@ class ForwardProxy:
     def close(self):
         self.httpd.shutdown()
         self.httpd.server_close()
+
+
+# ---- a two-author history for the history-analysis tests
+SECRET = "Sup3rSecretValue99"
+
+
+def commit(repo, who, when, msg, env_extra=None):
+    name, email = who
+    env = dict(os.environ, GIT_AUTHOR_NAME=name, GIT_AUTHOR_EMAIL=email, GIT_COMMITTER_NAME=name,
+               GIT_COMMITTER_EMAIL=email, GIT_AUTHOR_DATE=when, GIT_COMMITTER_DATE=when)
+    env.update(env_extra or {})
+    subprocess.run(["git", "add", "-A"], cwd=repo, env=env, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", msg], cwd=repo, env=env, check=True,
+                   stdout=subprocess.DEVNULL)
+
+
+ALICE = ("Alice", "alice@example.com")
+BOB = ("Bob", "bob@example.com")

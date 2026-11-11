@@ -85,3 +85,45 @@ def fmt_size(n):
         if n < 1024 or unit == "GB":
             return ("%d %s" % (n, unit)) if unit == "B" else "%.1f %s" % (n, unit)
         n /= 1024
+
+
+def bar_chart(values, labels, width=640, height=150, pad_left=34, pad_bottom=22, pad_top=12):
+    """Geometry for a one-series bar chart, as plain numbers for an inline SVG
+    (the CSP forbids inline styles, so sizes live in attributes and colours in
+    CSS). ``labels`` are what each bar is called; the first, the last and the
+    tallest bar are marked for direct labelling."""
+    n = len(values)
+    if not n:
+        return None
+    top = max(values) or 1
+    plot_w = width - pad_left - 6
+    plot_h = height - pad_bottom - pad_top
+    slot = plot_w / n
+    bar_w = max(2.0, min(22.0, slot * 0.7))
+    peak = values.index(max(values))
+    bars = []
+    for i, (v, label) in enumerate(zip(values, labels)):
+        h = 0 if v == 0 else max(2.0, plot_h * v / top)
+        bars.append({
+            "x": round(pad_left + slot * i + (slot - bar_w) / 2, 1),
+            "y": round(pad_top + plot_h - h, 1), "w": round(bar_w, 1), "h": round(h, 1),
+            "value": v, "label": label, "cx": round(pad_left + slot * i + slot / 2, 1),
+            "named": i in (0, n - 1, peak),
+        })
+    return {"width": width, "height": height, "bars": bars, "base": pad_top + plot_h,
+            "left": pad_left, "right": width - 6, "top_value": top, "top_y": pad_top,
+            "label_y": height - 6}
+
+
+def csv_safe(value):
+    """A cell that a spreadsheet will show as text, never run as a formula."""
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
+KIND_NAMES = {"remote": "remote", "local": "imported", "cloned": "cloned"}
+
+
+def kind_label(kind):
+    """The short word the UI shows for a dump's kind."""
+    return KIND_NAMES.get(kind, kind or "?")

@@ -5,9 +5,10 @@ import zipfile
 
 import flask
 
-from ... import actions
+from ... import actions, core
+from ...analysis import changes
 from ...viewer import reader
-from .. import security
+from .. import catalog, security
 
 bp = flask.Blueprint("ui", __name__)
 
@@ -80,9 +81,27 @@ def dashboard():
     return flask.render_template("dashboard.html", dumps=dumps, counts=counts)
 
 
+@bp.route("/help")
+def help_page():
+    sections = []
+    known = list(catalog.GROUP_ORDER) + sorted(
+        {a.group for a in actions.REGISTRY.values()} - set(catalog.GROUP_ORDER))
+    for group in known:
+        members = [a for a in actions.REGISTRY.values() if a.group == group]
+        if members:
+            heading, blurb = catalog.GROUPS.get(group, (group, ""))
+            sections.append(dict(key=group, heading=heading, blurb=blurb, actions=members))
+    return flask.render_template(
+        "help.html", registry=actions.REGISTRY.values(), sections=sections,
+        pipeline=catalog.PIPELINE, kind_labels=catalog.KIND_LABELS, kind_order=catalog.KIND_ORDER,
+        tools=catalog.TOOLS,
+    )
+
+
 @bp.route("/functions")
 def functions():
-    return flask.render_template("functions.html", registry=actions.REGISTRY.values())
+    """The Help page used to be called Functions; old links and bookmarks still work."""
+    return help_page()
 
 
 # ----------------------------------------------------------------- creating
@@ -100,13 +119,29 @@ def form_values(action, dump=None):
     return values
 
 
+def analysis_page(method, status=200, web=None, clone=None, disk=None, error=None):
+    """The "New analysis" page: one place to choose how a repository gets in
+    (exposed .git on a web server, a normal clone, a folder on disk). Each
+    method has its own form posting to its own endpoint; ``method`` is the one
+    shown, and ``error`` belongs to it."""
+    web_action, clone_action = actions.get("dump"), actions.get("clone")
+    roots = app().config["IMPORT_ROOTS"]
+    page = dict(
+        method=method, error=error, roots=roots, disabled=roots == [],
+        web={"action": web_action, "values": web_action.defaults(), "url": "", "start_now": True, **(web or {})},
+        clone={"action": clone_action, "values": clone_action.defaults(), "url": "", **(clone or {})},
+        disk={"path": "", **(disk or {})},
+    )
+    return flask.render_template("new_analysis.html", **page), status
+
+
 @bp.route("/new", methods=["GET", "POST"])
 def new_dump():
+    """Method 1: recover a repository from a web server's exposed .git."""
     action = actions.get("dump")
-    page = dict(action=action, start_now=True, error=None)
 
     if flask.request.method == "GET":
-        return flask.render_template("new_dump.html", values=form_values(action), url="", **page)
+        return analysis_page("web")
 
     security.check_csrf()
     form = flask.request.form
@@ -116,10 +151,10 @@ def new_dump():
             raise ValueError("URL is required")
         values = action.parse(form)
     except ValueError as e:
-        return flask.render_template(
-            "new_dump.html", values=action.defaults() | dict(form), url=url,
-            **{**page, "error": str(e), "start_now": "start_now" in form},
-        ), 400
+        return analysis_page(
+            "web", 400, error=str(e),
+            web={"values": action.defaults() | dict(form), "url": url, "start_now": "start_now" in form},
+        )
 
     dump = app().store.create(url, "remote", action.public_values(values))
     if "start_now" in form:
@@ -127,6 +162,35 @@ def new_dump():
         run = dump.latest_run
         return flask.redirect(flask.url_for("ui.run_detail", dump_id=dump.id, run_id=run.id))
     return flask.redirect(flask.url_for("ui.dump_detail", dump_id=dump.id))
+
+
+@bp.route("/clone", methods=["GET", "POST"])
+def clone_dump():
+    """Method 2: clone an ordinary remote repository (GitHub, GitLab, ...)."""
+    action = actions.get("clone")
+
+    if flask.request.method == "GET":
+        return analysis_page("clone")
+
+    security.check_csrf()
+    form = flask.request.form
+    url = form.get("url", "").strip()
+    try:
+        url = core.validate_clone_url(url)
+        values = action.parse(form)
+        if values["proxy"]:
+            core.parse_proxy(values["proxy"])
+    except ValueError as e:
+        return analysis_page(
+            "clone", 400, error=str(e),
+            clone={"values": action.defaults() | {k: v for k, v in form.items() if k != "token"}, "url": url},
+        )
+
+    dump = app().store.create(url, "cloned", action.public_values(values))
+    app().runner.submit(dump, action, values)
+    return flask.redirect(
+        flask.url_for("ui.run_detail", dump_id=dump.id, run_id=dump.latest_run.id)
+    )
 
 
 def import_allowed(path):
@@ -139,14 +203,13 @@ def import_allowed(path):
 
 @bp.route("/import", methods=["GET", "POST"])
 def import_dump():
-    """Register an already-recovered repository from the server's disk. No
-    network involved, so this is also the way to use the browsing side
-    fully offline."""
+    """Method 3: register an already-recovered repository from the server's
+    disk. No network involved, so this is also the way to use the browsing
+    side fully offline."""
     roots = app().config["IMPORT_ROOTS"]
-    page = dict(error=None, roots=roots, disabled=roots == [])
 
     if flask.request.method == "GET":
-        return flask.render_template("import_dump.html", **page)
+        return analysis_page("disk")
 
     security.check_csrf()
     if roots == []:
@@ -160,7 +223,7 @@ def import_dump():
     elif not import_allowed(path):
         error = "%r is outside the allowed import directories" % path
     if error:
-        return flask.render_template("import_dump.html", **{**page, "error": error}), 400
+        return analysis_page("disk", 400, error=error, disk={"path": path})
 
     dump = app().store.create(os.path.abspath(path), "local")
     app().runner.submit(dump, actions.get("import_local"), {})
@@ -172,13 +235,29 @@ def import_dump():
 # ---------------------------------------------------------------- one dump
 
 
+def repo_facts(repo):
+    """A few numbers for the overview header; never allowed to break the page."""
+    try:
+        refs, _ = reader.list_refs(repo)
+        commits = changes.count_commits(repo, 5001)
+        return {
+            "commits": "5000+" if commits > 5000 else commits,
+            "branches": sum(1 for r in refs if r.kind in ("branch", "remote")),
+            "tags": sum(1 for r in refs if r.kind == "tag"),
+        }
+    except Exception:
+        return None
+
+
 def render_dump(dump, error=None, open_action=None, submitted=None, status=200):
     default_ref = None
+    facts = None
     if not dump.busy:
         try:
             repo = reader.open_repo(dump.repo_dir)
             try:
                 default_ref = reader.default_ref(repo)
+                facts = repo_facts(repo)
             finally:
                 repo.close()
         except (reader.RepoError, reader.NotFound):
@@ -195,7 +274,7 @@ def render_dump(dump, error=None, open_action=None, submitted=None, status=200):
         groups.append((title, entries))
 
     return flask.render_template(
-        "dump.html", dump=dump, groups=groups, default_ref=default_ref,
+        "dump.html", dump=dump, groups=groups, default_ref=default_ref, facts=facts,
         registry=actions.REGISTRY, error=error, open_action=open_action,
     ), status
 

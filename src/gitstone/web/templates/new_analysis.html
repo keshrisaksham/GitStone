@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "partials/params.html" import fields %}
+{% block title %}{{ {'web': 'New analysis', 'clone': 'Clone', 'disk': 'Import'}[method] }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>New analysis</h1>
+  <p class="hint">Choose how the repository gets into GitStone. Whichever way it arrives, you then get the same
+    tools: browse the code, read the whole history, trace text and credentials through time, and compare versions.</p>
+
+  <div class="methods">
+    <input class="method-radio" type="radio" name="method" id="m-web" {{ 'checked' if method == 'web' }}>
+    <input class="method-radio" type="radio" name="method" id="m-clone" {{ 'checked' if method == 'clone' }}>
+    <input class="method-radio" type="radio" name="method" id="m-disk" {{ 'checked' if method == 'disk' }}>
+
+    <div class="method-cards">
+      <label class="method-card" for="m-web">
+        <svg class="method-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+        <span class="method-title">Exposed .git on a website</span>
+        <span class="method-desc">Rebuild a repository from a server that serves its <code>/.git/</code> folder by mistake.</span>
+        <span class="method-tags"><span class="tag">network</span><span class="tag">pentest / CTF</span></span>
+      </label>
+      <label class="method-card" for="m-clone">
+        <svg class="method-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="9" r="2.2"/><path d="M6 7.2v9.6M18 11.2c0 4-6 3-11 6.4"/></svg>
+        <span class="method-title">Clone a repository</span>
+        <span class="method-desc">GitHub, GitLab, Bitbucket or any git server, with the complete history for analysis.</span>
+        <span class="method-tags"><span class="tag">network</span><span class="tag">full history</span></span>
+      </label>
+      <label class="method-card" for="m-disk">
+        <svg class="method-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span class="method-title">Import from disk</span>
+        <span class="method-desc">A repository or recovered dump that is already on this machine. Works fully offline.</span>
+        <span class="method-tags"><span class="tag">offline</span></span>
+      </label>
+    </div>
+
+    <div class="method-panels">
+      <section class="method-panel" data-method="web" aria-labelledby="h-web">
+        <h2 class="first" id="h-web">Recover from an exposed <code>.git</code></h2>
+        <p class="hint">Only run this against targets you're authorized to test. These settings are remembered
+          for the dump, so each function on its page starts from the same values.</p>
+        {% if error and method == 'web' %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post" action="{{ url_for('ui.new_dump') }}" class="form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <label><span>Target URL</span>
+            <input type="text" name="url" value="{{ web.url }}" placeholder="http://target.example/.git" required {{ 'autofocus' if method == 'web' }}>
+            <small>The site, or its <code>/.git</code> folder; both work.</small>
+          </label>
+          {{ fields(web.action, web['values'], 'web-') }}
+          <label class="checkbox">
+            <input type="checkbox" name="start_now" {{ 'checked' if web.start_now }}>
+            <span>Start the full dump right away
+              <small>Uncheck to create the dump only and run individual functions yourself.</small></span>
+          </label>
+          <button type="submit" class="primary">Create dump</button>
+        </form>
+      </section>
+
+      <section class="method-panel" data-method="clone" aria-labelledby="h-clone">
+        <h2 class="first" id="h-clone">Clone a repository</h2>
+        <p class="hint">The repository is cloned onto this server with git's hooks switched off, then opened
+          like any other dump. Run it again later to fetch new commits.</p>
+        {% if error and method == 'clone' %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post" action="{{ url_for('ui.clone_dump') }}" class="form">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <label><span>Repository URL</span>
+            <input type="text" name="url" value="{{ clone.url }}" placeholder="https://github.com/owner/repo.git" required {{ 'autofocus' if method == 'clone' }}>
+            <small>Accepted forms:
+              <code>https://github.com/owner/repo.git</code>,
+              <code>https://gitlab.com/group/repo</code>,
+              <code>git@github.com:owner/repo.git</code>,
+              <code>ssh://git@host/path/repo.git</code>.
+              Private repository? Open <em>More options</em> and add an access token (https only).</small>
+          </label>
+          {{ fields(clone.action, clone['values'], 'clone-') }}
+          <button type="submit" class="primary">Clone and analyze</button>
+        </form>
+      </section>
+
+      <section class="method-panel" data-method="disk" aria-labelledby="h-disk">
+        <h2 class="first" id="h-disk">Import from disk</h2>
+        <p class="hint">Already have a repository &mdash; from the CLI, another machine, or a clone made by hand?
+          Point this at the folder that contains <code>.git</code> on <strong>this server</strong>. It is copied
+          into the workspace and made browsable, with no network access at all.</p>
+        {% if disabled %}
+          <p class="error">Importing is disabled on this server. Start it with
+            <code>--import-root DIR</code> to allow importing from a directory.</p>
+        {% else %}
+          {% if roots %}<p class="hint">Allowed: {% for r in roots %}<code>{{ r }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+          {% if error and method == 'disk' %}<p class="error">{{ error }}</p>{% endif %}
+          <form method="post" action="{{ url_for('ui.import_dump') }}" class="form">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <label><span>Path on the server</span>
+              <input type="text" name="path" value="{{ disk.path }}" placeholder="/home/you/projects/my-repo" required {{ 'autofocus' if method == 'disk' }}>
+              <small>The folder that holds <code>.git</code>, not the <code>.git</code> folder itself.</small>
+            </label>
+            <button type="submit" class="primary">Import</button>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="first">What you can do afterwards</h2>
+  <p class="hint">Every method ends in the same toolbox. See <a href="{{ url_for('ui.help_page') }}">Help</a> for the full list.</p>
+  <ul class="next-steps">
+    <li><strong>History overview</strong><span>authors, activity, hotspots, commits that need a look</span></li>
+    <li><strong>Pickaxe search</strong><span>the commit that added or removed some text</span></li>
+    <li><strong>Secret lifecycle</strong><span>credentials committed, then deleted</span></li>
+    <li><strong>Compare &amp; diff</strong><span>any two commits, branches or tags</span></li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Help{% endblock %}
+{% block sidebar %}
+<aside class="sidebar help-rail">
+  <label class="side-label" for="help-search">Find</label>
+  <input id="help-search" type="search" class="ref-picker" data-fn-search placeholder="refs, clone, secrets..." aria-label="Search the help">
+  <nav class="side-nav" aria-label="Filter" data-fn-filters>
+    <span class="side-title">Show</span>
+    <button type="button" class="side-link side-filter is-on" data-fn-filter="all" aria-pressed="true">Everything</button>
+    {% for k in kind_order %}<button type="button" class="side-link side-filter" data-fn-filter="{{ k }}" aria-pressed="false"><span class="kind-dot kind-dot-{{ k }}"></span>{{ kind_labels[k] }}</button>{% endfor %}
+    <button type="button" class="side-link side-filter" data-fn-filter="offline" aria-pressed="false">Works offline</button>
+    <button type="button" class="side-link side-filter" data-fn-filter="network" aria-pressed="false">Uses the network</button>
+  </nav>
+  <nav class="side-nav" aria-label="Sections">
+    <span class="side-title">Jump to</span>
+    {% for section in sections %}<a class="side-link" href="#sec-{{ loop.index }}" data-fn-jump="sec-{{ loop.index }}">{{ section.heading }}<span class="side-count">{{ section.actions | length }}</span></a>{% endfor %}
+    <a class="side-link" href="#sec-tools" data-fn-jump="sec-tools">Analysis tools<span class="side-count">{{ tools | length }}</span></a>
+  </nav>
+</aside>
+{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Help</h1>
+  <p class="hint">Everything GitStone can do, grouped by what you are trying to achieve.
+    <strong>Functions</strong> are run from a dump's page, in any order; each reads and writes the same
+    recovered files, so a step can be repeated or resumed. <strong>Analysis tools</strong> are pages you open
+    once a repository is in. Use the panel on the left to search, filter by the kind of dump, or jump to a section.</p>
+  <p class="hint fn-legend">
+    <span class="kind-badge kind-remote">Web server</span> a site that exposes <code>.git</code>
+    <span class="kind-badge kind-cloned">Cloned</span> a repository cloned from a git server
+    <span class="kind-badge kind-local">Imported</span> a folder brought in from disk
+  </p>
+</div>
+
+{% for section in sections %}
+<section class="panel fn-section" id="sec-{{ loop.index }}" data-fn-section>
+  <h2 class="first">{{ section.heading }} <span class="muted fn-count">{{ section.actions | length }}</span></h2>
+  <p class="hint">{{ section.blurb }}</p>
+  {% if section.key == 'Steps' %}
+  <ol class="pipeline" aria-label="Order the stages run in">
+    {% for id, label in pipeline %}<li><span class="pipeline-n">{{ loop.index }}</span>{{ label }}</li>{% endfor %}
+  </ol>
+  {% endif %}
+  <div class="fn-list">
+    {% for a in section.actions %}
+    <article class="fn-row" data-fn-card data-name="{{ (a.title ~ ' ' ~ a.id ~ ' ' ~ a.summary) | lower }}"
+             data-kinds="{{ a.kinds | join(' ') }}" data-network="{{ 'yes' if a.network else 'no' }}">
+      <div class="fn-side">
+        <span class="fn-title">{{ a.title }}</span>
+        <code class="fn-id">{{ a.id }}</code>
+        <div class="fn-badges">
+          {% for k in kind_order if k in a.kinds %}<span class="kind-badge kind-{{ k }}">{{ kind_labels[k] }}</span>{% endfor %}
+          {% if a.network %}<span class="net-badge net-yes" title="Sends requests to the target or remote">Uses the network</span>
+          {% else %}<span class="net-badge net-no" title="Works only on files already on this server">Offline</span>{% endif %}
+        </div>
+      </div>
+      <div class="fn-main">
+        <p class="fn-summary">{{ a.summary }}</p>
+        {% if a.params %}
+        <details class="fn-options">
+          <summary>Options <span class="muted">({{ a.params | length }})</span></summary>
+          <dl class="fn-opt-grid">
+            {% for p in a.params %}
+            <div class="fn-opt">
+              <dt>{{ p.label }}{% if p.secret %} <span class="chip">never stored</span>{% endif %}{% if p.default not in ('', none, false) and not p.secret %} <span class="muted">default {{ p.default }}</span>{% endif %}</dt>
+              {% if p.help %}<dd>{{ p.help }}</dd>{% endif %}
+            </div>
+            {% endfor %}
+          </dl>
+        </details>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<section class="panel fn-section" id="sec-tools" data-fn-section>
+  <h2 class="first">Analysis tools <span class="muted fn-count">{{ tools | length }}</span></h2>
+  <p class="hint">Pages that work on any repository already in GitStone, however it arrived. Open a dump, then find them in the left-hand menu.</p>
+  <div class="fn-list">
+    {% for title, summary, where, group in tools %}
+    <article class="fn-row" data-fn-card data-name="{{ (title ~ ' ' ~ summary) | lower }}" data-kinds="remote cloned local" data-network="no">
+      <div class="fn-side">
+        <span class="fn-title">{{ title }}</span>
+        <div class="fn-badges"><span class="net-badge net-no">Offline</span></div>
+      </div>
+      <div class="fn-main">
+        <p class="fn-summary">{{ summary }}</p>
+        <p class="fn-where">Find it under <strong>{{ where }}</strong></p>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+<p class="empty filter-empty" data-fn-empty hidden>Nothing matches that. Clear the search or pick <strong>Everything</strong>.</p>
+{% endblock %}

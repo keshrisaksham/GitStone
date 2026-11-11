@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Secret lifecycle{% endblock %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Secret lifecycle</h1>
+  <p class="hint">A credential that was committed and later deleted is still in every copy of the history.
+    This reads every commit's changes, finds credential-shaped text on added and on removed lines, and
+    pairs them up: <strong>who added it, when, and whether and when it was taken out again</strong>.
+    Anything listed here, removed or not, should be treated as exposed and rotated.
+    For a scan of the files as they are now, use <a href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}">Secrets scan</a>.</p>
+  <form method="get" class="search-form"><input type="hidden" name="run" value="1"><button type="submit" class="primary">{{ 'Re-run' if result else 'Trace credentials through history' }}</button></form>
+</div>
+{% if result is not none %}
+<div class="panel">
+  <h2 class="first">{{ result.secrets | length }} credential{{ 's' if result.secrets | length != 1 }} found
+    <span class="muted">({{ result.removed }} later removed, {{ result.secrets | length - result.removed }} still present)</span></h2>
+  {% if result.truncated %}<p class="warn-note">&#9888; Only the newest {{ result.walked }} commits were read.</p>{% endif %}
+  {% if not result.secrets %}<p class="empty">No credential-shaped text was added in the commits read.</p>{% endif %}
+  {% if result.secrets %}
+  <div class="table-wrap">
+  <table class="findings">
+    <thead><tr><th>Severity</th><th>Credential</th><th>Added</th><th>Removed</th><th>Exposed</th></tr></thead>
+    <tbody>
+    {% for s in result.secrets %}
+      <tr>
+        <td><span class="sev sev-{{ s.severity }}">{{ s.severity }}</span></td>
+        <td><strong>{{ s.pattern }}</strong><pre class="snippet">{{ s.line }}</pre>
+          {% for p in s.paths %}<code class="file-links">{{ p }}</code> {% endfor %}
+          {% if s.additions > 1 %}<span class="muted">added in {{ s.additions }} commits</span>{% endif %}</td>
+        <td><a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=s.introduced.sha) }}"><code>{{ s.introduced.short }}</code></a><br>
+          {{ s.introduced.author }}<br><span class="muted">{{ s.introduced.time | fmt_time }}</span></td>
+        <td>{% if s.removed %}<a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=s.removed.sha) }}"><code>{{ s.removed.short }}</code></a><br>
+          {{ s.removed.author }}<br><span class="muted">{{ s.removed.time | fmt_time }}</span>
+          {% else %}<span class="chip chip-danger">still present</span>{% endif %}</td>
+        <td>{{ s.exposed_days }} day{{ 's' if s.exposed_days != 1 }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

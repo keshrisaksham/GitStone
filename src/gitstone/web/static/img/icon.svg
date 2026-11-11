@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="256" height="256">
+  <!-- The GitStone tombstone as an application icon: fixed colours (a menu icon cannot follow
+       your theme or accent) that read on both light and dark launchers. -->
+  <path d="M7 27.5V13.5a9 9 0 0 1 18 0v14z" fill="#1fa844" fill-opacity=".22" stroke="#1fa844" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 8.5v10M11.8 13h8.4" fill="none" stroke="#1fa844" stroke-width="2.3" stroke-linecap="round"/>
+  <path d="M11.5 23h9" fill="none" stroke="#1fa844" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+  <path d="M2.5 27.5h27M4.5 27.5l.9-2.4M7.3 27.5l-.3-1.8M27.5 27.5l-.9-2.4M24.7 27.5l.3-1.8" fill="none" stroke="#1fa844" stroke-width="1.9" stroke-linecap="round"/>
+</svg>

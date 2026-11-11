@@ -34,7 +34,7 @@ def test_titles_read_gitstone_pipe_page(app, client, repo):
     dump_id = import_dump(app, client, repo)
     host = repo.name  # imported from disk: the folder name stands in for a host
     assert _title(client.get("/").get_data(as_text=True)) == "GitStone | Dumps"
-    for path, page in (("/functions", "Functions"), ("/new", "New dump"), ("/import", "Import")):
+    for path, page in (("/help", "Help"), ("/functions", "Help"), ("/new", "New analysis"), ("/import", "Import")):
         assert _title(client.get(path).get_data(as_text=True)) == "GitStone | " + page
     d = "/dumps/%s" % dump_id
     assert _title(client.get(d + "/compare").get_data(as_text=True)) == "GitStone | Compare &middot; " + host
@@ -48,7 +48,7 @@ def test_titles_read_gitstone_pipe_page(app, client, repo):
 
 
 def test_no_page_still_uses_the_old_title_style(app, client):
-    for path in ("/", "/functions", "/new", "/import"):
+    for path in ("/", "/help", "/functions", "/new", "/import"):
         title = _title(client.get(path).get_data(as_text=True))
         assert title.startswith("GitStone | ") and " - GitStone" not in title
 

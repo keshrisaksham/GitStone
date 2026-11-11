@@ -11,6 +11,7 @@ or any single step on its own (``probe``, ``find_refs``, ``fetch_objects``,
 ``run_checkout``, ...).
 """
 from .checkout import recover_from_index, run_checkout
+from .clone import clone_or_update, validate_clone_url
 from .config import (
     DEFAULT_BRANCHES,
     DEFAULT_JOBS,
@@ -40,8 +41,8 @@ from .stages import (
 __all__ = [
     "Cancelled", "Config", "DEFAULT_BRANCHES", "DEFAULT_JOBS", "DEFAULT_RETRY",
     "DEFAULT_TIMEOUT", "DEFAULT_USER_AGENT", "Logger", "ProbeResult", "Stats",
-    "build_http_headers", "collect_object_ids", "fetch_common_files",
+    "build_http_headers", "clone_or_update", "collect_object_ids", "fetch_common_files",
     "fetch_git", "fetch_listing", "fetch_objects", "find_packs", "find_refs",
     "normalize_url", "parse_lines", "parse_proxy", "print_summary", "probe",
-    "recover_from_index", "run_checkout", "summarize",
+    "recover_from_index", "run_checkout", "summarize", "validate_clone_url",
 ]

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Blame {{ path }}{% endblock %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel viewer-card">
+  <div class="viewer-top">
+    <p class="nav-back"><a data-back-link hidden></a></p>
+    <nav class="breadcrumbs">
+      <a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref) }}">{{ ref[:10] }}</a>
+      {% for name, crumb in breadcrumbs %} / {% if loop.last %}<strong>{{ name }}</strong>{% else %}<a href="{{ url_for('browse.tree_page', dump_id=dump.id, ref=ref, subpath=crumb) }}">{{ name }}</a>{% endif %}{% endfor %}
+    </nav>
+    <p class="actions">
+      <a href="{{ url_for('history.file_page', dump_id=dump.id, ref=ref, subpath=path) }}">&larr; File history</a>
+      <a href="{{ url_for('browse.blob_page', dump_id=dump.id, ref=ref, subpath=path) }}">Plain view</a>
+    </p>
+  </div>
+  {% if error %}<p class="empty">{{ error }}</p>{% else %}
+  <div class="code-wrap">
+  <table class="blob blame" data-code>
+    {% for l in lines %}
+    <tr id="L{{ l.number }}" class="{{ 'blame-start' if l.first_of_group }}">
+      <td class="blame-who">{% if l.first_of_group %}<a href="{{ url_for('browse.commit_page', dump_id=dump.id, sha=l.sha) }}" title="{{ l.summary }}"><code>{{ l.short }}</code></a> <span class="muted">{{ l.author.split('<')[0].strip() }}, {{ l.time | fmt_time }}</span>{% endif %}</td>
+      <td class="ln"><a href="#L{{ l.number }}">{{ l.number }}</a></td>
+      <td class="code"><pre>{{ l.text }}</pre></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
