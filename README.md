@@ -796,6 +796,11 @@ that on request from a browser, so:
   accordingly. No TLS: use a reverse proxy or a tunnel off a trusted network.
 * **Importing from disk is off on the network** unless `--import-root` names a
   directory; paths are resolved before they are checked against it.
+* **The only call to a site other than the one you point it at is the "Check
+  for updates" button** in the topbar, and only when clicked -- never on page
+  load. The server (not the browser; the CSP's `connect-src` is `'self'`) asks
+  GitHub whether a newer version has been published and reports back the
+  version number, nothing else.
 * **Recovered content never runs in the UI.** Everything from the target is
   rendered through Jinja's autoescaping (syntax highlighting adds only
   `<span class>` markup built from token types); raw downloads are attachments

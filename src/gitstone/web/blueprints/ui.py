@@ -5,8 +5,9 @@ import zipfile
 
 import flask
 
-from ... import actions, core
+from ... import __version__, actions, core
 from ...analysis import changes
+from ...core import update
 from ...viewer import reader
 from .. import catalog, security
 
@@ -102,6 +103,20 @@ def help_page():
 def functions():
     """The Help page used to be called Functions; old links and bookmarks still work."""
     return help_page()
+
+
+@bp.route("/update/check.json")
+def check_update():
+    """Asked on demand by the "Check for updates" button, never on page load:
+    the only outbound call this UI makes that isn't to a user-supplied URL."""
+    try:
+        latest, newer = update.check(__version__)
+    except Exception as e:
+        return flask.jsonify(ok=False, error=str(e)), 502
+    return flask.jsonify(
+        ok=True, current=__version__, latest=latest, newer=newer,
+        url="https://github.com/%s" % update.REPO,
+    )
 
 
 # ----------------------------------------------------------------- creating

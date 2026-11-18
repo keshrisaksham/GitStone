@@ -41,9 +41,8 @@ dev = ["pytest"]
 gitstone = "gitstone.cli:main"
 gitstone-ui = "gitstone.web.server:main"
 
-# TODO: set the real repository URL once this is published
-# [project.urls]
-# Homepage = "https://github.com/YOUR-ORG/gitstone"
+[project.urls]
+Homepage = "https://github.com/keshrisaksham/GitStone"
 
 [tool.setuptools.dynamic]
 version = { attr = "gitstone.__version__" }

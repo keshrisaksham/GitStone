@@ -11,7 +11,7 @@
   {% for name in ('tokens', 'base', 'layout', 'components', 'viewer', 'results', 'history', 'functions', 'dump', 'styles', 'responsive', 'compare') -%}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ name ~ '.css') }}">
   {% endfor -%}
-  {% for name in ('common', 'filters', 'viewer', 'runs', 'scan-job', 'compare', 'functions') -%}
+  {% for name in ('common', 'filters', 'viewer', 'runs', 'scan-job', 'compare', 'functions', 'update') -%}
   <script src="{{ url_for('static', filename='js/' ~ name ~ '.js') }}" defer></script>
   {% endfor -%}
 </head>
@@ -24,6 +24,9 @@
       <a href="{{ url_for('ui.dashboard') }}" class="{{ 'active' if dumps_section }}">Dumps</a>
       <a href="{{ url_for('ui.help_page') }}" class="{{ 'active' if ep in ('ui.help_page', 'ui.functions') }}">Help</a>
       <a class="btn-link" href="{{ url_for('ui.new_dump') }}">+ New analysis</a>
+      <button type="button" class="link-button muted-button" data-update-check title="Check GitHub for a newer version">Check for updates</button>
+      <span class="badge" data-update-status hidden></span>
+      <a class="btn-link" data-update-link target="_blank" rel="noopener noreferrer" hidden>view on GitHub</a>
       <div class="accent-picker" role="group" aria-label="Accent colour">
         {% for name in ('green', 'amber', 'cyan', 'magenta', 'blue', 'red') %}<button type="button" class="accent-swatch swatch-{{ name }}" data-accent-set="{{ name }}" aria-pressed="false" aria-label="{{ name }} accent" title="{{ name }}"></button>{% endfor %}
       </div>
