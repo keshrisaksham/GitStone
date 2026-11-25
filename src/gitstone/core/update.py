@@ -6,6 +6,7 @@ version string committed on the default branch; once a release exists,
 """
 import base64
 import re
+import time
 
 import requests
 
@@ -57,3 +58,46 @@ def check(current_version, api=API):
     :class:`requests.RequestException` if GitHub could not be reached or read."""
     latest = latest_version(api)
     return latest, _version_tuple(latest) > _version_tuple(current_version)
+
+
+def _rate_limit_wait(reset_header):
+    """"try again ..." from a GitHub ``X-RateLimit-Reset`` header (epoch
+    seconds), or a vague fallback if the header is missing or not a number."""
+    try:
+        seconds = int(reset_header) - time.time()
+    except (TypeError, ValueError):
+        return "try again in a few minutes"
+    minutes = max(1, round(seconds / 60))
+    return "try again in about %d minute%s" % (minutes, "" if minutes == 1 else "s")
+
+
+def friendly_error(exc):
+    """A short, human-readable message for an exception :func:`check` raised.
+
+    The raw exception text is not fit to show someone: a connection failure's
+    ``str()`` embeds a socket object's ``repr()``
+    (``HTTPSConnectionPool(host='api.github.com', ...)``), and a 403 from
+    hitting GitHub's unauthenticated rate limit reads like any other HTTP
+    error unless its headers are read. This maps the exceptions
+    :func:`check` can actually raise to a message that says what happened
+    and, for a few, what to do about it.
+    """
+    if isinstance(exc, UpdateCheckError):
+        return str(exc)
+    if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
+        resp = exc.response
+        if resp.status_code == 403 and resp.headers.get("X-RateLimit-Remaining") == "0":
+            return "GitHub's rate limit for this IP was reached; %s." % _rate_limit_wait(
+                resp.headers.get("X-RateLimit-Reset"))
+        return "GitHub returned an error (HTTP %d)." % resp.status_code
+    if isinstance(exc, requests.exceptions.ConnectTimeout):
+        return "Connecting to GitHub timed out."
+    if isinstance(exc, requests.exceptions.ReadTimeout):
+        return "GitHub did not respond in time."
+    if isinstance(exc, requests.exceptions.SSLError):
+        return "Could not verify GitHub's TLS certificate."
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        return "Could not reach GitHub -- check this machine's internet connection."
+    if isinstance(exc, requests.exceptions.RequestException):
+        return "Could not reach GitHub."
+    return "Unexpected error checking for updates: %s" % str(exc)[:200]

@@ -31,3 +31,24 @@ def test_a_network_failure_is_reported_as_json_not_a_500(monkeypatch, client):
     response = client.get("/update/check.json")
     assert response.status_code == 502
     assert response.get_json() == {"ok": False, "error": "GitHub is unreachable"}
+
+
+def test_a_connect_timeout_is_reported_as_a_clean_message_not_the_raw_exception(monkeypatch, client):
+    """Real report: from a machine that cannot reach GitHub, the button used
+    to surface requests' raw exception text verbatim -- a connection pool
+    repr and all (``HTTPSConnectionPool(host='api.github.com', port=443):
+    Max retries exceeded ... ConnectTimeoutError(<HTTPSConnection ...>, ...``).
+    """
+    import requests
+
+    def boom(current):
+        raise requests.exceptions.ConnectTimeout(
+            "HTTPSConnectionPool(host='api.github.com', port=443): Max retries exceeded with url: "
+            "/repos/keshrisaksham/GitStone/releases/latest (Caused by ConnectTimeoutError("
+            "<HTTPSConnection object at 0x7f417af50cd0>, 'Connection to api.github.com timed out. "
+            "(connect timeout=6)'))"
+        )
+    monkeypatch.setattr(ui.update, "check", boom)
+    response = client.get("/update/check.json")
+    assert response.status_code == 502
+    assert response.get_json() == {"ok": False, "error": "Connecting to GitHub timed out."}

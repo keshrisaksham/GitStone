@@ -112,7 +112,7 @@ def check_update():
     try:
         latest, newer = update.check(__version__)
     except Exception as e:
-        return flask.jsonify(ok=False, error=str(e)), 502
+        return flask.jsonify(ok=False, error=update.friendly_error(e)), 502
     return flask.jsonify(
         ok=True, current=__version__, latest=latest, newer=newer,
         url="https://github.com/%s" % update.REPO,

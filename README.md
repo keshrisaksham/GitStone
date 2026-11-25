@@ -921,6 +921,10 @@ that on request from a browser, so:
   narrow the pickaxe by author, dates or folder.
 * **A background scan vanished.** Jobs live in memory; a server restart forgets
   them.
+* **"Check for updates" reports a clean error.** The server could not reach
+  `api.github.com` -- no internet route from this machine, a timeout, or
+  GitHub's rate limit for unauthenticated requests (60/hour per IP; the
+  message says when it resets). Nothing to fix in GitStone itself.
 * **GitStone is not in the applications menu.** Some desktops need a moment, or
   a log-out, to notice a new launcher. Check that
   `~/.local/share/applications/gitstone.desktop` exists; `--reinstall` rewrites
