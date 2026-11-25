@@ -17,6 +17,7 @@ from .common import ref_picker, ref_picker_default, with_repo
 bp = flask.Blueprint("history", __name__, url_prefix="/dumps/<dump_id>/history")
 
 AUTO_RUN_MAX = 300  # a history this short is analysed on arrival, longer ones on request
+PICKAXE_LIMIT_CEILING = 750  # ceiling for the Pickaxe results page's "Load more" link
 
 
 def default_commit(repo):
@@ -119,6 +120,7 @@ def pickaxe_page(dump, repo):
     form["case"] = args.get("case") == "1"
     # on by default for a fresh form; once a search was submitted the box means what it says
     form["staged"] = args.get("staged") == "1" if "q" in args else True
+    limit = helpers.result_limit(args, pickaxe.MAX_HITS, PICKAXE_LIMIT_CEILING)
     result = error = None
     if form["q"]:
         try:
@@ -127,13 +129,14 @@ def pickaxe_page(dump, repo):
                 author=form["author"], since=parse_day(form["since"]),
                 until=parse_day(form["until"], end=True), path_prefix=form["path"],
                 change=form["change"] if form["change"] in ("added", "removed") else "",
-                include_staged=form["staged"],
+                include_staged=form["staged"], max_hits=limit,
             )
         except ValueError as e:
             error = str(e)
     return flask.render_template(
         "repo/pickaxe.html", dump=dump, form=form, result=result, error=error,
-        active="pickaxe", **ref_picker_default(repo, dump),
+        active="pickaxe", limit=limit, limit_ceiling=PICKAXE_LIMIT_CEILING,
+        next_limit=helpers.next_limit(limit, PICKAXE_LIMIT_CEILING), **ref_picker_default(repo, dump),
     )
 
 

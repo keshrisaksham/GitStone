@@ -6,7 +6,7 @@ import re
 import pytest
 
 from gitstone import actions
-from tests.helpers import csrf_of, git, ids_from, post, wait_run
+from tests.helpers import csrf_of, git, ids_from, import_dump, post, wait_run
 
 
 def checked(html):
@@ -266,6 +266,24 @@ def test_dump_overview_has_stats_cards_shortcuts_and_a_run_list(app, client, ser
     assert html.count('class="form run-card"') >= 7 and 'class="primary run-button"' in html
     assert "shortcut-list" in html and "History overview" in html and "run-list" in html
     assert "Secret lifecycle" in html and "Delete this dump" in html
+
+
+def test_dump_overview_shows_the_repository_s_own_git_remotes(app, client, repo):
+    """The URL/path GitStone used to obtain the dump is the page title; the
+    repo's own `.git/config` remotes (which can point somewhere else
+    entirely -- a fork, a mirror, the real upstream of an imported folder)
+    are a separate, explicit line."""
+    git(repo, "remote", "add", "origin", "git@github.com:some-org/private-repo.git")
+    dump_id = import_dump(app, client, repo)
+    html = client.get("/dumps/%s" % dump_id).get_data(as_text=True)
+    assert "dump-origin" in html
+    assert "<code>origin</code>" in html and "git@github.com:some-org/private-repo.git" in html
+
+
+def test_dump_overview_has_no_origin_line_without_a_configured_remote(app, client, repo):
+    dump_id = import_dump(app, client, repo)
+    html = client.get("/dumps/%s" % dump_id).get_data(as_text=True)
+    assert "dump-origin" not in html
 
 
 def test_a_run_card_form_still_submits_with_its_collapsed_settings(app, client, server):

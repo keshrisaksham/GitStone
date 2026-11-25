@@ -7,6 +7,7 @@
 .dump-title { min-width: 0; flex: 1 1 420px; }
 .dump-title h1 { margin: 0 0 6px; font-size: 18px; }
 .dump-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0; }
+.dump-origin { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; }
 .dump-actions { gap: 10px 14px; }
 .dump-actions a:not(.primary) { font-size: 12.5px; }
 a.primary { display: inline-block; text-decoration: none; }

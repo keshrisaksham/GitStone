@@ -27,6 +27,7 @@
     <a class="side-link {{ 'active' if active == 'search' }}" href="{{ url_for('tools.search_page', dump_id=dump.id, ref=current_ref) }}"><span class="side-icon">&#8981;</span>Search</a>
     {% endif %}
     <a class="side-link {{ 'active' if active == 'secrets' }}" href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}"><span class="side-icon">&#9888;</span>Secrets scan</a>
+    <a class="side-link {{ 'active' if active == 'endpoints' }}" href="{{ url_for('tools.endpoints_page', dump_id=dump.id) }}"><span class="side-icon">&#128279;</span>Endpoint extraction</a>
     <a class="side-link {{ 'active' if active == 'difference' }}" href="{{ url_for('tools.difference_page', dump_id=dump.id) }}"><span class="side-icon">&#177;</span>Difference</a>
     <a class="side-link {{ 'active' if active == 'timeline' }}" href="{{ url_for('tools.timeline_page', dump_id=dump.id) }}"><span class="side-icon">&#9636;</span>Timeline</a>
     <span class="side-title">History analysis</span>

@@ -6,10 +6,16 @@ import os
 
 import flask
 
-from ...analysis import metadata, references, search, secrets as secret_scan
+from ...analysis import endpoints as endpoint_scan, metadata, references, search, secrets as secret_scan
 from ...viewer import dedupe, history, reader, timeline as timeline_scan, versions
-from .. import scans, security
+from .. import helpers, scans, security
 from .common import blob_context, ref_picker, ref_picker_default, render_diff, with_repo
+
+# ceilings for each results page's "Load more" link: generous enough to be
+# worth clicking, bounded so a request still renders in good time
+SEARCH_LIMIT_DEFAULTS = {"tree": 200, "history": 200, "blobs": 300, "meta": 300, "entropy": 300}
+SEARCH_LIMIT_CEILINGS = {"tree": 1000, "history": 1000, "blobs": 1500, "meta": 1500, "entropy": 1500}
+ENDPOINTS_LIMIT_CEILING = 6000
 
 bp = flask.Blueprint("tools", __name__, url_prefix="/dumps/<dump_id>")
 
@@ -63,7 +69,7 @@ def run_search(repo, ref, opts, job=None):
     With ``job`` it runs as a background job: no object/time caps, progress
     reported and cancellable."""
     query, scope = opts["query"], opts["scope"]
-    kw = {"regex": opts["regex"], "ignore_case": opts["ignore_case"]}
+    kw = {"regex": opts["regex"], "ignore_case": opts["ignore_case"], "max_hits": opts["limit"]}
     walk_kw = {}
     if job is not None:
         walk_kw = dict(max_objects=scans.BG_MAX_OBJECTS, max_seconds=scans.BG_MAX_SECONDS,
@@ -89,10 +95,12 @@ def render_search(dump, repo, ref, opts, result, error=None, job=None):
     hits, scanned, truncated = result if result else (None, None, None)
     ctx = ref_picker(repo, ref, "tools.search_page", dump_id=dump.id)
     repeats = sum(1 for h in hits or [] if h.dup_of_first)
+    ceiling = SEARCH_LIMIT_CEILINGS[opts["scope"]]
     return flask.render_template(
         "repo/search.html", dump=dump, ref=ref, query=opts["query"], scope=opts["scope"], hits=hits,
         truncated=truncated, scanned=scanned, error=error, regex=opts["regex"],
-        ignore_case=opts["ignore_case"], bg=opts["bg"], repeats=repeats, job=job, **ctx,
+        ignore_case=opts["ignore_case"], bg=opts["bg"], repeats=repeats, job=job,
+        limit=opts["limit"], limit_ceiling=ceiling, next_limit=helpers.next_limit(opts["limit"], ceiling), **ctx,
     )
 
 
@@ -107,12 +115,14 @@ def search_page(dump, repo, ref):
     reader.resolve_commit(repo, ref)  # 404s for a bad ref before anything runs
     args = flask.request.args
     scope = args.get("scope", "tree")
+    scope = scope if scope in SEARCH_SCOPES else "tree"
     opts = {
         "query": args.get("q", "").strip(),
-        "scope": scope if scope in SEARCH_SCOPES else "tree",
+        "scope": scope,
         "regex": args.get("regex") == "1",
         "ignore_case": args.get("case") != "1",
         "bg": args.get("bg") == "1",
+        "limit": helpers.result_limit(args, SEARCH_LIMIT_DEFAULTS[scope], SEARCH_LIMIT_CEILINGS[scope]),
     }
     result = error = None
     if opts["query"] or opts["scope"] == "entropy":
@@ -143,6 +153,7 @@ def secrets_options(args):
         "meta": args.get("meta") == "1",
         "entropy": args.get("entropy") == "1",
         "bg": args.get("bg") == "1",
+        "limit": helpers.result_limit(args, secret_scan.MAX_SCAN_FINDINGS, scans.BG_MAX_FINDINGS),
     }
 
 
@@ -150,7 +161,7 @@ def run_secrets(repo, opts, job=None):
     """Returns ``(findings, scanned, truncated)``. ``job`` makes it a background
     run: caps lifted, progress reported, cancellable."""
     custom = secret_scan.compile_custom(opts["custom"]) if opts["custom"] else None
-    kw = dict(custom=custom, entropy=opts["entropy"], metadata_sources=opts["meta"])
+    kw = dict(custom=custom, entropy=opts["entropy"], metadata_sources=opts["meta"], max_findings=opts["limit"])
     if job is not None:
         kw.update(max_objects=scans.BG_MAX_OBJECTS, max_seconds=scans.BG_MAX_SECONDS,
                   max_findings=scans.BG_MAX_FINDINGS, progress=job.progress, should_stop=job.should_stop)
@@ -162,7 +173,9 @@ def render_secrets(dump, repo, opts, run, result=None, error=None, job=None):
     ctx = ref_picker_default(repo, dump)
     return flask.render_template(
         "repo/secrets.html", dump=dump, run=run, findings=findings, scanned=scanned,
-        truncated=truncated, error=error, custom=opts["custom"], opts=opts, job=job, **ctx,
+        truncated=truncated, error=error, custom=opts["custom"], opts=opts, job=job,
+        limit=opts["limit"], limit_ceiling=scans.BG_MAX_FINDINGS,
+        next_limit=helpers.next_limit(opts["limit"], scans.BG_MAX_FINDINGS), **ctx,
     )
 
 
@@ -194,6 +207,53 @@ def secrets_page(dump, repo):
     return render_secrets(dump, repo, opts, run, result, error)
 
 
+def run_endpoints(repo, opts, job=None):
+    """Returns ``(hits, scanned, truncated)``. ``job`` makes it a background
+    run: caps lifted, progress reported, cancellable."""
+    kw = {"max_hits": opts["limit"]}
+    if job is not None:
+        kw.update(max_objects=scans.BG_MAX_OBJECTS, max_seconds=scans.BG_MAX_SECONDS,
+                  progress=job.progress, should_stop=job.should_stop)
+    return endpoint_scan.endpoints_scan(repo, **kw)
+
+
+def render_endpoints(dump, repo, opts, run, result=None, error=None, job=None):
+    hits, scanned, truncated = result if result else (None, None, None)
+    ctx = ref_picker_default(repo, dump)
+    return flask.render_template(
+        "repo/endpoints.html", dump=dump, run=run, hits=hits, scanned=scanned,
+        truncated=truncated, error=error, opts=opts, job=job, kind_labels=endpoint_scan.KIND_LABELS,
+        limit=opts["limit"], limit_ceiling=ENDPOINTS_LIMIT_CEILING,
+        next_limit=helpers.next_limit(opts["limit"], ENDPOINTS_LIMIT_CEILING), **ctx,
+    )
+
+
+@bp.route("/endpoints")
+@with_repo
+def endpoints_page(dump, repo):
+    args = flask.request.args
+    opts = {
+        "bg": args.get("bg") == "1",
+        "limit": helpers.result_limit(args, endpoint_scan.MAX_SCAN_HITS, ENDPOINTS_LIMIT_CEILING),
+    }
+    run = args.get("run") == "1"
+    result = None
+    if run:
+        if opts["bg"]:
+            repo_dir = dump.repo_dir
+
+            def work(job):
+                own = reader.open_repo(repo_dir)
+                try:
+                    return run_endpoints(own, opts, job)
+                finally:
+                    own.close()
+
+            return start_job(dump, "endpoints", opts, work)
+        result = run_endpoints(repo, opts)
+    return render_endpoints(dump, repo, opts, run, result)
+
+
 # ------------------------------------------------------------- background scans
 def get_job(dump, job_id):
     job = flask.current_app.scans.get(job_id)
@@ -211,6 +271,8 @@ def scan_job_page(dump, repo, job_id):
     if job.state == scans.DONE:
         if job.kind == "secrets":
             return render_secrets(dump, repo, job.params, True, job.result, job=job)
+        if job.kind == "endpoints":
+            return render_endpoints(dump, repo, job.params, True, job.result, job=job)
         params = dict(job.params)
         return render_search(dump, repo, params["ref"], params, job.result, job=job)
     return flask.render_template("repo/scan_job.html", dump=dump, job=job, **ref_picker_default(repo, dump))

@@ -29,6 +29,27 @@ def test_list_refs_and_default_ref(opened):
     assert reader.default_ref(opened) == "master"
 
 
+def test_list_remotes_is_empty_with_none_configured(opened):
+    assert reader.list_remotes(opened) == []
+
+
+def test_list_remotes_reads_every_remote_url(repo, opened):
+    git(repo, "remote", "add", "upstream", "https://example.com/upstream.git")
+    git(repo, "remote", "add", "origin", "git@github.com:some-org/private-repo.git")
+    opened = reader.open_repo(str(repo))  # pick up the config change
+    assert reader.list_remotes(opened) == [
+        ("origin", "git@github.com:some-org/private-repo.git"),
+        ("upstream", "https://example.com/upstream.git"),
+    ]
+
+
+def test_list_remotes_puts_origin_first_even_when_added_last(repo):
+    git(repo, "remote", "add", "zzz", "https://example.com/zzz.git")
+    git(repo, "remote", "add", "origin", "https://example.com/origin.git")
+    opened = reader.open_repo(str(repo))
+    assert [name for name, _ in reader.list_remotes(opened)] == ["origin", "zzz"]
+
+
 def test_resolve_commit_by_branch_tag_and_sha(opened):
     commit, sha = reader.resolve_commit(opened, "master")
     assert len(sha) == 40

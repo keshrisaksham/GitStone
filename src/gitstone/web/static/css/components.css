@@ -53,6 +53,13 @@ table.list td, table.list th, .ref-list td, .ref-list th, .findings td, .finding
   padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top;
 }
 table.list th, .ref-list th, .findings th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 600; }
+th[data-sort-key] { cursor: pointer; user-select: none; }
+th[data-sort-key]:hover { color: var(--text); }
+th[data-sort-key] .sort-caret { display: inline-block; width: 1em; opacity: .45; }
+th[data-sort-key][aria-sort="ascending"] .sort-caret, th[data-sort-key][aria-sort="descending"] .sort-caret { opacity: 1; color: var(--accent); }
+th[data-sort-key] .sort-caret::after { content: "\2195"; }
+th[data-sort-key][aria-sort="ascending"] .sort-caret::after { content: "\2191"; }
+th[data-sort-key][aria-sort="descending"] .sort-caret::after { content: "\2193"; }
 table.list td.wrap { min-width: 220px; }
 table.list tbody tr:hover, .findings tbody tr:hover { background: var(--bg-raised); }
 

@@ -11,7 +11,7 @@
   {% for name in ('tokens', 'base', 'layout', 'components', 'viewer', 'results', 'history', 'functions', 'dump', 'styles', 'responsive', 'compare') -%}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ name ~ '.css') }}">
   {% endfor -%}
-  {% for name in ('common', 'filters', 'viewer', 'runs', 'scan-job', 'compare', 'functions', 'update') -%}
+  {% for name in ('common', 'filters', 'sort', 'viewer', 'runs', 'scan-job', 'compare', 'functions', 'update') -%}
   <script src="{{ url_for('static', filename='js/' ~ name ~ '.js') }}" defer></script>
   {% endfor -%}
 </head>

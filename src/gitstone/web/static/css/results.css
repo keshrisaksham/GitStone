@@ -57,3 +57,14 @@
 .inline-filters .dedupe-toggle { border-left: 0; padding-left: 0; }
 progress[data-scan-bar] { width: 100%; max-width: 560px; height: 14px; accent-color: var(--accent); }
 .missing-refs .is-generated { opacity: .6; }
+
+/* ---- endpoint extraction: fixed columns so a long Context snippet (useful
+   but secondary) cannot crowd out the Endpoint value people actually scan
+   and sort by ---- */
+table.endpoints-table { table-layout: fixed; }
+table.endpoints-table th:nth-child(1), table.endpoints-table td:nth-child(1) { width: 9%; }
+table.endpoints-table th:nth-child(2), table.endpoints-table td:nth-child(2) { width: 33%; }
+table.endpoints-table th:nth-child(3), table.endpoints-table td:nth-child(3) { width: 36%; }
+table.endpoints-table th:nth-child(4), table.endpoints-table td:nth-child(4) { width: 22%; }
+table.endpoints-table td:nth-child(2) code { word-break: break-all; }
+.split.has-pane table.endpoints-table th, .split.has-pane table.endpoints-table td { width: auto; }

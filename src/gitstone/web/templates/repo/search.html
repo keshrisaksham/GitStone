@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/dedupe.html" import dedupe_toggle %}
 {% from "partials/where.html" import where_link %}
+{% from "partials/load_more.html" import load_more_link %}
 {% set paned = scope in ('blobs', 'meta', 'entropy') %}
 {% block title %}Search{% endblock %}
 {% set active = 'search' %}
@@ -44,7 +45,13 @@
 <div class="{{ 'split' if paned else '' }}" {% if paned %}data-split{% endif %}>
   <div class="panel split-list">
     <p>{{ hits|length }} match{{ 'es' if hits|length != 1 }}{% if scanned %} in {{ scanned }} blob(s){% endif %}.
-       {% if truncated %}<span class="chip chip-warn">limit reached, showing the first results</span>{% endif %}
+       {% if truncated %}<span class="chip chip-warn">limit reached, showing the first results</span>
+       {% if not job %}
+       {{ load_more_link('tools.search_page', {'dump_id': dump.id, 'ref': ref, 'q': query, 'scope': scope,
+          'regex': 1 if regex else none, 'case': 1 if not ignore_case else none, 'bg': 1 if bg else none},
+          limit, limit_ceiling, next_limit) }}
+       {% endif %}
+       {% endif %}
        <span class="filters inline-filters">{{ dedupe_toggle(repeats, 'ul.commit-list > li, ul.search-hits > li') }}</span></p>
     {% if scope == 'history' %}
       <ul class="commit-list">

@@ -7,6 +7,24 @@ import flask
 from werkzeug.utils import secure_filename
 
 
+def result_limit(args, default, ceiling):
+    """The ``limit`` query parameter for a results page's "Load more" link,
+    clamped to ``[default, ceiling]``. A missing, non-numeric or out-of-range
+    value falls back to ``default``, so a hand-edited URL can only ever ask
+    for *more* results, never fewer and never past the ceiling the page is
+    still able to render (or scan) in good time."""
+    limit = args.get("limit", default, type=int)
+    if not limit:
+        return default
+    return max(default, min(limit, ceiling))
+
+
+def next_limit(current, ceiling):
+    """The limit a "Load more" link should ask for next: doubled, capped at
+    ``ceiling``."""
+    return min(current * 2, ceiling)
+
+
 def breadcrumbs(path):
     """``a/b/c`` -> ``[("a", "a"), ("b", "a/b"), ("c", "a/b/c")]``"""
     parts = [p for p in (path or "").strip("/").split("/") if p]

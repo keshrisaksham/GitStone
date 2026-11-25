@@ -1,0 +1,13 @@
+{# A "Load more" link for a results page capped at `limit`: re-submits the
+   same query with a higher `limit`, up to `ceiling`. `params` carries every
+   other query parameter the page needs to reproduce the same results (a
+   `None` value is dropped by url_for, so an unset checkbox/option can be
+   passed straight through). Shown only once a page has actually been run
+   and hit its cap -- callers gate this on `truncated`. #}
+{% macro load_more_link(endpoint, params, limit, ceiling, next_limit) %}
+{% if limit < ceiling %}
+<a class="primary-link" href="{{ url_for(endpoint, limit=next_limit, **params) }}">Load up to {{ next_limit }} &rarr;</a>
+{% else %}
+<span class="muted">showing the maximum ({{ ceiling }}); narrow the query for a complete picture</span>
+{% endif %}
+{% endmacro %}

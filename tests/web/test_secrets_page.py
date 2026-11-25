@@ -48,6 +48,26 @@ def test_secrets_page_bad_custom_regex(app, client, repo):
     assert resp.status_code == 200 and b"invalid regular expression" in resp.data
 
 
+def test_secrets_page_offers_load_more_once_the_limit_is_hit(app, client, repo, monkeypatch):
+    from gitstone.analysis import secrets as secret_scan
+    from gitstone.web import scans
+    monkeypatch.setattr(secret_scan, "MAX_SCAN_FINDINGS", 1)
+    monkeypatch.setattr(scans, "BG_MAX_FINDINGS", 5)
+    for i in range(3):
+        (repo / ("s%d.env" % i)).write_text("API_TOKEN=abcdefghijklmnop%d\n" % i)
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "three secrets")
+    dump_id = import_dump(app, client, repo)
+
+    capped = client.get("/dumps/%s/secrets?run=1" % dump_id).get_data(as_text=True)
+    assert "1 finding." in capped
+    assert "limit reached" in capped and "Load up to 2" in capped
+
+    more = client.get("/dumps/%s/secrets?run=1&limit=5" % dump_id).get_data(as_text=True)
+    assert "3 findings." in more
+    assert "limit reached" not in more and "Load up to" not in more
+
+
 def test_secrets_page_options_and_links_for_metadata_findings(app, client, repo):
     git_config_with_credentials(repo)
     dump_id = import_dump(app, client, repo)

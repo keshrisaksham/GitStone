@@ -11,6 +11,12 @@
         <span class="badge status-{{ dump.status }}">{{ dump.status }}</span>
         <span class="muted">created {{ dump.created | fmt_time }}</span>
       </p>
+      {% if facts and facts.remotes %}
+      <p class="muted wrap dump-origin" title="from this repository's own .git/config -- can differ from how it was obtained above">
+        Git {{ 'remote' if facts.remotes | length == 1 else 'remotes' }}:
+        {% for name, url in facts.remotes %}<code>{{ name }}</code> &rarr; <code>{{ url }}</code>{% if not loop.last %}<br>{% endif %}{% endfor %}
+      </p>
+      {% endif %}
     </div>
     {% if default_ref %}
     <div class="actions dump-actions">
@@ -76,6 +82,7 @@
         <li><a href="{{ url_for('history.pickaxe_page', dump_id=dump.id) }}"><strong>Pickaxe search</strong><span>when did some text appear or vanish</span></a></li>
         <li><a href="{{ url_for('history.lifecycle_page', dump_id=dump.id) }}"><strong>Secret lifecycle</strong><span>credentials committed, then removed</span></a></li>
         <li><a href="{{ url_for('tools.secrets_page', dump_id=dump.id) }}"><strong>Secrets scan</strong><span>credential patterns everywhere</span></a></li>
+        <li><a href="{{ url_for('tools.endpoints_page', dump_id=dump.id) }}"><strong>Endpoint extraction</strong><span>every URL and API route</span></a></li>
         <li><a href="{{ url_for('tools.timeline_page', dump_id=dump.id) }}"><strong>Timeline</strong><span>everything added, changed, deleted</span></a></li>
       </ul>
     </div>

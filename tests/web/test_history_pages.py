@@ -95,6 +95,22 @@ def test_pickaxe_filters_and_bad_input_are_handled(client, dump):
     assert "No commit added or removed" in none
 
 
+def test_pickaxe_offers_load_more_once_the_limit_is_hit(app, client, dump, monkeypatch):
+    """``story``'s three "docs" commits each add one more "more" line to
+    README.md, so the query "more" reliably matches all three."""
+    from gitstone.analysis import pickaxe as pickaxe_mod
+    from gitstone.web.blueprints import history
+    monkeypatch.setattr(pickaxe_mod, "MAX_HITS", 1)
+    monkeypatch.setattr(history, "PICKAXE_LIMIT_CEILING", 5)
+
+    capped = get(client, dump, "/pickaxe?q=more").get_data(as_text=True)
+    assert "1 commit" in capped and "Stopped early" in capped
+    assert "Load up to 2" in capped
+
+    more = get(client, dump, "/pickaxe?q=more&limit=5").get_data(as_text=True)
+    assert "3 commits" in more and "Stopped early" not in more
+
+
 def test_pickaxe_output_is_escaped(app, client, tmp_path):
     import subprocess
     from tests.helpers import commit

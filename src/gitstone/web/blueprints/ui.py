@@ -259,6 +259,7 @@ def repo_facts(repo):
             "commits": "5000+" if commits > 5000 else commits,
             "branches": sum(1 for r in refs if r.kind in ("branch", "remote")),
             "tags": sum(1 for r in refs if r.kind == "tag"),
+            "remotes": reader.list_remotes(repo),
         }
     except Exception:
         return None

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "partials/dedupe.html" import dedupe_toggle %}
+{% from "partials/where.html" import where_link %}
+{% from "partials/load_more.html" import load_more_link %}
+{% block title %}Endpoint extraction{% endblock %}
+{% set active = 'endpoints' %}
+{% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Endpoint extraction</h1>
+  <p class="hint">
+    Scans every blob in this dump -- not just the files checked out at one
+    ref -- for full URLs, server-side route definitions (Flask, Express,
+    FastAPI, Django, ...), and client-side calls to a relative path
+    (<code>fetch</code>, <code>axios</code>, <code>requests</code>, ...).
+    Lines of any length are checked. Click a result to read the file in the
+    pane on the right.
+  </p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="get" class="search-form">
+    <input type="hidden" name="run" value="1">
+    <button type="submit" class="primary">{{ 'Re-run scan' if run else 'Run scan' }}</button>
+    <div class="search-options">
+      <label title="No object or time limits; shows progress and can be cancelled">
+        <input type="checkbox" name="bg" value="1" {{ 'checked' if opts.bg }}> run in the background</label>
+    </div>
+  </form>
+</div>
+
+{% if run %}
+<div class="split" data-split>
+  <div class="panel split-list">
+    <p>Scanned {{ scanned }} blob(s){% if truncated %} <span class="chip chip-warn">limit reached, results may be incomplete</span>{% endif %}.
+       {{ hits|length }} result{{ 's' if hits|length != 1 }}.
+       {% if truncated and not job %}
+       {{ load_more_link('tools.endpoints_page', {'dump_id': dump.id, 'run': 1, 'bg': 1 if opts.bg else none},
+          limit, limit_ceiling, next_limit) }}
+       {% endif %}</p>
+    {% if hits %}
+    {% set dup_count = hits | selectattr('dup_of_first') | list | length %}
+    <div class="filters" data-severity-filter>
+      <label><input type="checkbox" value="url" checked> URLs</label>
+      <label><input type="checkbox" value="route" checked> routes</label>
+      <label><input type="checkbox" value="call" checked> client calls</label>
+      {{ dedupe_toggle(dup_count, '.findings tbody tr') }}
+      <input type="search" class="tree-filter" data-filter-rows=".findings tbody tr" placeholder="Filter results" aria-label="Filter results">
+    </div>
+    <div class="table-wrap">
+    <table class="findings endpoints-table">
+      <thead><tr>
+        <th data-sort-key="kind" aria-sort="none">Kind <span class="sort-caret" aria-hidden="true"></span></th>
+        <th data-sort-key="value" aria-sort="none">Endpoint <span class="sort-caret" aria-hidden="true"></span></th>
+        <th>Context</th>
+        <th data-sort-key="where" aria-sort="none">Where <span class="sort-caret" aria-hidden="true"></span></th>
+      </tr></thead>
+      <tbody>
+        {% for h in hits %}
+        {% set loc = h.locations[0] if h.locations else none %}
+        <tr data-sev="{{ h.kind }}" data-dup="{{ '1' if h.dup_of_first else '0' }}"
+            data-name="{{ (h.value ~ ' ' ~ h.line ~ ' ' ~ h.path) | lower }}"
+            data-sort-kind="{{ h.kind }}" data-sort-value="{{ h.value | lower }}"
+            data-sort-where="{{ (h.path or '') | lower }}">
+          <td><span class="chip">{{ kind_labels[h.kind] }}</span></td>
+          <td><code>{{ h.value }}</code></td>
+          <td><pre class="snippet">{{ h.line }}</pre></td>
+          <td class="where">
+            {{ where_link(h, dump, loc, h.path or none) }}
+            {% if loc %}<span class="muted">@ {{ loc[0][:8] }}</span>{% else %}<span class="muted">(unreferenced)</span>{% endif %}
+            {% if h.dup_count > 1 %}<span class="chip" title="the same endpoint was found in {{ h.dup_count }} places">&times;{{ h.dup_count }}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="empty filter-empty" hidden>No results match these filters.</p>
+    {% else %}
+      <p class="empty">No matches.</p>
+    {% endif %}
+  </div>
+  <aside class="panel split-pane" id="blob-pane" aria-live="polite" hidden></aside>
+</div>
+{% endif %}
+{% endblock %}

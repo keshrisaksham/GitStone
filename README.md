@@ -117,6 +117,7 @@ installed now; fix the problem and run `--install`. Run from an installed copy,
 pipx install .                     # the same thing --install does when pipx is present
 python -m venv ~/.venvs/gitstone && ~/.venvs/gitstone/bin/pip install .
 pip install -e ".[dev]"            # editable, with pytest, for working on the code
+pip install -r requirements.txt    # just the runtime dependencies, into your own venv
 
 ./scripts/gitstone-ui              # no install at all, from the checkout
 ./scripts/gitstone URL DIR
@@ -336,7 +337,12 @@ are more than six dumps.
 scroll**: the target, its kind and status, *Browse repository*, *History
 analysis*, *Download .zip* (with or without `.git`; it skips symlinks and
 unfinished `.part` files), and one line of numbers (commits, branches and tags,
-runs, files fetched, last activity). Below it, every function is a card with a
+runs, files fetched, last activity). If the recovered repository's own
+`.git/config` names any `[remote]`, its name and URL are shown on their own
+line underneath -- this is **not** the same thing as the target above: a site
+can expose a fork's or a mirror's `.git`, and a folder imported from disk can
+point at a different (often more revealing) origin than wherever it was
+actually found. Below it, every function is a card with a
 **Run** button that uses the settings the dump was created with. *Settings* on a
 card opens that run's options across the full row (a rejected value reopens the
 card with the error). Beside the cards, which stay in view as well: shortcuts to
@@ -535,14 +541,44 @@ when its line names it like a credential); *run in the background*.
 The foreground scan is capped at 50,000 objects and 20 seconds, and says so when
 it hits a limit; use the background mode for big repositories.
 
+#### Endpoint extraction
+
+`/endpoints?run=1`. Scans every blob in the object store (so an endpoint a
+later commit removed from the client is still found) for three shapes:
+
+* **URL** -- a full URL of any scheme, wherever it sits in the text;
+* **Route definition** -- a path a server registers a handler for
+  (Flask/FastAPI's `@app.route("/x")` / `@app.get("/x")`, Express's
+  `router.post('/x', ...)`, Django's `path("/x/", ...)`);
+* **Client call** -- a path a client asks for (`fetch('/api/x')`,
+  `axios.get('/x')`, `requests.post('/x', ...)`); never double-counted as a
+  route definition even though it has the same `<object>.<method>(` shape.
+
+Results can be filtered by kind, filtered by text, and de-duplicated the same
+way the other tools are; clicking one opens the file in the pane with the line
+highlighted. *Run in the background* lifts the usual object/time caps.
+
 #### Background scans
 
-*Run in the background* (secrets scan, and every search scope except *files at
-this ref* and *commit messages*) lifts the caps (up to 2,000,000 objects and 30
-minutes), shows a live progress bar with the current phase, can be **cancelled**,
+*Run in the background* (secrets scan, endpoint extraction, and every search
+scope except *files at this ref* and *commit messages*) lifts the caps (up to
+2,000,000 objects and 30 minutes), shows a live progress bar with the current
+phase, can be **cancelled**,
 and renders the same results page when it finishes; you can leave the page and
 come back. At most two scans run at once, the latest 40 are kept, and jobs live
 in memory only, so a server restart forgets them.
+
+#### Load more
+
+Secrets scan, Search, Endpoint extraction and Pickaxe each cap how many
+*results* they show, separately from how much of the repository they *cover*.
+When that cap is what was hit, a **Load more** link appears next to the
+warning and re-runs the same query asking for more, up to a ceiling (see
+[Limits](#limits)) -- it is a fast re-run over the same object/time window,
+not a bigger scan. When the repository itself was only partly covered
+(the foreground object/time/commit cap), *Load more* cannot surface anything
+new; switch to *run in the background* (where offered) or narrow the query
+instead.
 
 #### Timeline
 
@@ -646,15 +682,16 @@ Symlinks and anything outside `.git`, including the object store, are refused.
 |---|---|
 | Foreground scan or search over blobs | 50,000 objects, 20 s |
 | Background scan or search | 2,000,000 objects, 30 min |
-| Findings shown | 500 (2,000 in the background); 20,000 kept while scanning |
-| Search hits | 200 tree, 300 blobs / metadata / entropy, 200 commit messages (2,000 commits) |
+| Findings shown | 500 (2,000 in the background), *Load more* up to 2,000; 20,000 kept while scanning |
+| Endpoint extraction hits | 2,000, foreground or background, *Load more* up to 6,000 |
+| Search hits | 200 tree / commit messages, 300 blobs / metadata / entropy; *Load more* up to 1,000 / 1,500 (2,000 commits) |
 | Blob preview | 2 MB; highlighting up to 400 KB / 8,000 lines |
 | Long lines | over 2,000 characters are matched in segments of about 1,000 |
 | Diffs | 400 files, 512 KB of diff text, 256 KB per side per file, 20,000 lines |
 | Timeline | 3,000 commits, 2,000 events, 20 s |
 | History overview | 3,000 commits, 20 s; auto-runs up to 300 commits; 30 hotspots; 72 months charted |
 | Author lists | 3,000 commits (commit objects only, no diffs) |
-| Pickaxe | 2,000 commits, 25 s, 150 commits shown, 6 lines per file |
+| Pickaxe | 2,000 commits, 25 s, 150 commits shown (*Load more* up to 750), 6 lines per file |
 | Secret lifecycle | 2,000 commits, 25 s, 200 credentials |
 | Blame | files up to 300 KB |
 | Rename detection | 40 removed x 40 added files per commit, 64 KB each |
@@ -680,9 +717,12 @@ Symlinks and anything outside `.git`, including the object store, are refused.
    (and in the background for a large repo); *Secret lifecycle* for the ones that
    were committed and later removed; then *Search* and *Pickaxe* for names you
    saw.
-6. **Compare** two versions around a suspicious commit to see exactly what
+6. **Map the API.** *Endpoint extraction* for every URL, server route and
+   client call -- including ones a later commit removed from the client but
+   never took down on the server.
+7. **Compare** two versions around a suspicious commit to see exactly what
    changed, and use *Blame* on a file to see who wrote the interesting lines.
-7. **Take it away.** *Download .zip*, or keep working in the workspace.
+8. **Take it away.** *Download .zip*, or keep working in the workspace.
 
 ## Docker
 
@@ -775,6 +815,7 @@ forms carry. JSON endpoints answer `401` rather than redirect when not logged in
 | `GET /dumps/<id>/compare?base=&head=`, `/versions?q=&limit=` | compare, picker data (JSON) |
 | `GET /dumps/<id>/search/<ref>?q=&scope=tree\|blobs\|history\|meta\|entropy&regex=1&case=1&bg=1` | search |
 | `GET /dumps/<id>/secrets?run=1&custom=&meta=1&entropy=1&bg=1` | secrets scan |
+| `GET /dumps/<id>/endpoints?run=1&bg=1` | endpoint extraction (URLs, routes, client calls) |
 | `GET /dumps/<id>/timeline?run=1`, `/difference`, `/gitfile/<path>` | timeline, staged changes, `.git` files |
 | `GET /dumps/<id>/scans/<job>`, `.../status.json`, `POST .../cancel` | a background scan |
 | `GET /dumps/<id>/history[?run=1]`, `/history/export.json`, `/history/export.csv` | history overview and its exports |
@@ -908,7 +949,7 @@ src/gitstone/
   core/                   the dumper, as plain functions (imports nothing else from the package)
     clone.py                clone or update a regular remote, hardened
   viewer/                 reading a recovered repository and presenting it (dulwich)
-    reader.py               refs, trees, blobs, commits, tolerant diffs and compare
+    reader.py               refs, remotes, trees, blobs, commits, tolerant diffs and compare
     filehistory.py          one file's revisions, and blame
     history.py              blob -> path lookup, staged index vs HEAD
     timeline.py             every file-level change across all history
@@ -918,6 +959,7 @@ src/gitstone/
   analysis/               hunting in a recovered repository (uses viewer)
     walk.py                 the one pass over the object store the scans share
     secrets.py, entropy.py  credential rules and ranking; high-entropy strings
+    endpoints.py            URLs, route definitions and client calls
     search.py               text/regex search over every scope
     metadata.py             .git files and commit/tag messages as sources
     references.py           files referenced but absent from the repository

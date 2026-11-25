@@ -27,6 +27,24 @@ def test_search_page_has_a_working_hide_duplicates_switch(app, client, repo):
     assert "data-dedupe-filter" in none and "disabled" in none  # offered, but nothing to hide
 
 
+def test_search_page_offers_load_more_once_the_limit_is_hit(app, client, repo, monkeypatch):
+    from gitstone.web.blueprints import tools
+    monkeypatch.setitem(tools.SEARCH_LIMIT_DEFAULTS, "tree", 1)
+    monkeypatch.setitem(tools.SEARCH_LIMIT_CEILINGS, "tree", 5)
+    for i in range(3):
+        (repo / ("n%d.txt" % i)).write_text("needle %d\n" % i)
+    commit_all(repo, "three needles")
+    dump_id = import_dump(app, client, repo)
+
+    capped = client.get("/dumps/%s/search/master?q=needle" % dump_id).get_data(as_text=True)
+    assert "1 match." in capped
+    assert "limit reached" in capped and "Load up to 2" in capped
+
+    more = client.get("/dumps/%s/search/master?q=needle&limit=5" % dump_id).get_data(as_text=True)
+    assert "3 matches." in more
+    assert "limit reached" not in more and "Load up to" not in more
+
+
 def test_search_page_has_the_new_scopes_and_background_option(app, client, repo):
     git_config_with_credentials(repo)
     dump_id = import_dump(app, client, repo)

@@ -2,7 +2,7 @@
 import time
 import threading
 
-from tests.helpers import import_dump, post, stage_password_edit
+from tests.helpers import git, import_dump, post, stage_password_edit
 from gitstone.analysis import walk
 
 
@@ -26,6 +26,20 @@ def test_background_secrets_scan_runs_reports_and_renders_the_results(app, clien
     assert status["state"] == "done" and status["phase"] == "Done"
     page = client.get(resp.headers["Location"]).get_data(as_text=True)
     assert "OctopiFociPilfer45" in page and "uncommitted (staged)" in page
+
+
+def test_background_endpoints_scan_runs_reports_and_renders_the_results(app, client, repo):
+    (repo / "config.py").write_text("URL = 'https://api.example.com/bg'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "config")
+    dump_id = import_dump(app, client, repo)
+    resp = client.get("/dumps/%s/endpoints?run=1&bg=1" % dump_id)
+    assert resp.status_code == 302
+    job_id = resp.headers["Location"].rstrip("/").split("/")[-1]
+    status = _wait_job(app, client, dump_id, job_id)
+    assert status["state"] == "done" and status["phase"] == "Done"
+    page = client.get(resp.headers["Location"]).get_data(as_text=True)
+    assert "api.example.com/bg" in page
 
 
 def test_background_search_runs_and_renders_the_results(app, client, repo):

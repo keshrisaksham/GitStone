@@ -68,6 +68,7 @@
         var label = "Back";
         if (/\/search\//.test(path)) { label = "Back to search"; }
         else if (/\/secrets(\?|$)/.test(path)) { label = "Back to secrets scan"; }
+        else if (/\/endpoints(\?|$)/.test(path)) { label = "Back to endpoint extraction"; }
         else if (/\/commits\//.test(path)) { label = "Back to commits"; }
         else if (/\/commit\//.test(path)) { label = "Back to commit"; }
         else if (/\/compare(\?|$)/.test(path)) { label = "Back to compare"; }

@@ -1,10 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Secrets scan' if job.kind == 'secrets' else 'Search' }} (background){% endblock %}
-{% set active = 'secrets' if job.kind == 'secrets' else 'search' %}
+{% set titles = {'secrets': 'Secrets scan', 'endpoints': 'Endpoint extraction'} %}
+{% set back_pages = {'secrets': 'tools.secrets_page', 'endpoints': 'tools.endpoints_page'} %}
+{% set title = titles.get(job.kind, 'Search') %}
+{% block title %}{{ title }} (background){% endblock %}
+{% set active = job.kind if job.kind in ('secrets', 'endpoints') else 'search' %}
 {% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
 {% block content %}
 <div class="panel">
-  <h1>{{ 'Secrets scan' if job.kind == 'secrets' else 'Search' }} <span class="muted">in the background</span></h1>
+  <h1>{{ title }} <span class="muted">in the background</span></h1>
   {% if job.state in ('queued', 'running') %}
   <div data-scan-status="{{ url_for('tools.scan_job_status', dump_id=dump.id, job_id=job.id) }}">
     <p><strong data-scan-phase>{{ job.phase }}</strong> <span class="muted" data-scan-count></span></p>
@@ -20,6 +23,6 @@
   {% else %}
     <p class="empty">The scan was cancelled.</p>
   {% endif %}
-  <p><a class="btn-link" href="{{ url_for('tools.secrets_page' if job.kind == 'secrets' else 'tools.search_page', dump_id=dump.id, **({} if job.kind == 'secrets' else {'ref': job.params.ref})) }}">&larr; Back to the form</a></p>
+  <p><a class="btn-link" href="{{ url_for(back_pages.get(job.kind, 'tools.search_page'), dump_id=dump.id, **({'ref': job.params.ref} if job.kind not in ('secrets', 'endpoints') else {})) }}">&larr; Back to the form</a></p>
 </div>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/load_more.html" import load_more_link %}
 {% block title %}Pickaxe{% endblock %}
 {% block sidebar %}{% include "partials/repo_nav.html" %}{% endblock %}
 {% block content %}
@@ -35,7 +36,14 @@
 <div class="panel">
   <h2 class="first">{{ result.hits | length }} commit{{ 's' if result.hits | length != 1 }}{{ ' and the staged changes' if result.staged }} touch this text
     <span class="muted">({{ result.considered }} commits examined)</span></h2>
-  {% if result.truncated %}<p class="warn-note">&#9888; Stopped early at a size, time or result limit; narrow the search for the full picture.</p>{% endif %}
+  {% if result.truncated %}
+  <p class="warn-note">&#9888; Stopped early at a size, time or result limit; narrow the search for the full picture, or
+    {{ load_more_link('history.pickaxe_page', {'dump_id': dump.id, 'q': form.q, 'change': form.change or none,
+       'author': form.author or none, 'since': form.since or none, 'until': form.until or none, 'path': form.path or none,
+       'regex': 1 if form.regex else none, 'case': 1 if form.case else none, 'staged': 1 if form.staged else none},
+       limit, limit_ceiling, next_limit) }}
+  </p>
+  {% endif %}
   {% if form.staged and not result.staged_searched %}<p class="hint">Staged changes were not searched: they have no author or date, so they are left out when those filters are set.</p>{% endif %}
   {% if not result.hits and not result.staged %}<p class="empty">No commit{{ ' or staged change' if result.staged_searched }} added or removed a line matching that.</p>{% endif %}
   <ul class="hit-list">

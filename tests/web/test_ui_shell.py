@@ -61,6 +61,25 @@ def test_dump_host_names_a_dump_for_a_title():
     assert helpers.dump_host("") == ""
 
 
+def test_result_limit_clamps_and_next_limit_doubles():
+    from werkzeug.datastructures import MultiDict
+    from gitstone.web import helpers
+
+    def args(**kw):
+        return MultiDict(kw)
+
+    assert helpers.result_limit(args(), 200, 1000) == 200  # missing -> default
+    assert helpers.result_limit(args(limit="50"), 200, 1000) == 200  # below default -> default, never fewer
+    assert helpers.result_limit(args(limit="600"), 200, 1000) == 600  # within range -> as asked
+    assert helpers.result_limit(args(limit="9999"), 200, 1000) == 1000  # above ceiling -> ceiling
+    assert helpers.result_limit(args(limit="not a number"), 200, 1000) == 200  # garbage -> default
+    assert helpers.result_limit(args(limit="0"), 200, 1000) == 200  # falsy -> default
+
+    assert helpers.next_limit(200, 1000) == 400
+    assert helpers.next_limit(600, 1000) == 1000  # capped
+    assert helpers.next_limit(1000, 1000) == 1000  # already at the ceiling
+
+
 def test_the_tombstone_logo_is_in_the_header_and_the_tab(app, client):
     page = client.get("/").get_data(as_text=True)
     assert 'rel="icon"' in page and "logo.svg" in page

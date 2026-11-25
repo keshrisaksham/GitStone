@@ -92,6 +92,29 @@ def list_refs(repo):
     return refs, head_sha
 
 
+def list_remotes(repo):
+    """``[(name, url)]`` for every ``[remote "<name>"] url = ...`` entry in
+    ``.git/config``, as the recovered repository itself claims them -- not to
+    be confused with the URL or path GitStone used to obtain the dump, which
+    can differ (a site can expose a fork's or a mirror's ``.git``, and a
+    folder imported from disk can point at a different origin than wherever
+    it was actually found). ``origin`` first, then the rest alphabetically."""
+    try:
+        config = repo.get_config()
+    except Exception:
+        return []
+    remotes = []
+    for section in config.sections():
+        if len(section) == 2 and section[0] == b"remote":
+            try:
+                url = config.get(section, b"url")
+            except KeyError:
+                continue
+            remotes.append((section[1].decode("utf-8", "replace"), url.decode("utf-8", "replace")))
+    remotes.sort(key=lambda r: (r[0] != "origin", r[0]))
+    return remotes
+
+
 def default_ref(repo):
     """ Best starting point for the UI: HEAD's branch, else any branch/tag """
     try:
